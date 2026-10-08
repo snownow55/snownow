@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-export default function PostPage() {
+function PostForm(){
+
   const router = useRouter();
 const searchParams = useSearchParams();
 const selectedResort = searchParams.get("resort") || "オーンズ";
@@ -213,5 +214,12 @@ const selectedResort = searchParams.get("resort") || "オーンズ";
         </p>
       </div>
     </main>
+  );
+}
+export default function PostPage() {
+  return (
+    <Suspense fallback={<div>読み込み中...</div>}>
+      <PostForm />
+    </Suspense>
   );
 }
