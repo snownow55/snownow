@@ -2,12 +2,16 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-function PostForm(){
-
+import Link from "next/link";
+import { useAuth } from "@/components/auth-provider";
+import { canPost } from "@/lib/auth-policy";
+function PostForm() {
   const router = useRouter();
-const searchParams = useSearchParams();
-const selectedResort = searchParams.get("resort") || "オーンズ";
+  const { user, loading } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const searchParams = useSearchParams();
+  const selectedResort = searchParams.get("resort") || "オーンズ";
   const [resort, setResort] = useState(selectedResort);
   const [area, setArea] = useState("山頂・上部");
   const [snowType, setSnowType] = useState("パウダー");
@@ -17,26 +21,73 @@ const selectedResort = searchParams.get("resort") || "オーンズ";
   const [condition, setCondition] = useState("★★★★★");
   const [comment, setComment] = useState("");
 
- async function handleSubmit() {
-  const { error } = await supabase.from("snow_posts").insert({
-    resort,
-    area,
-    snow_type: snowType,
-    snowfall,
-    roughness,
-    crowd,
-    condition,
-    comment,
-  });
-
-  if (error) {
-    console.error("投稿エラー:", error);
-    alert("投稿に失敗しました");
-    return;
+  async function handleSubmit() {
+    if (!canPost(user) || submitting) return;
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const response = await fetch("/api/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resort,
+          area,
+          snow_type: snowType,
+          snowfall,
+          roughness,
+          crowd,
+          condition,
+          comment,
+        }),
+      });
+      if (!response.ok) {
+        setSubmitError(
+          response.status === 401 || response.status === 403
+            ? "メール確認済みのアカウントでログインしてください。"
+            : "投稿に失敗しました。入力内容や通信状態を確認してください。",
+        );
+        return;
+      }
+      router.push("/");
+    } catch {
+      setSubmitError("通信に失敗しました。もう一度お試しください。");
+    } finally {
+      setSubmitting(false);
+    }
   }
-
-  router.push("/");
-}
+  const loginNext = "/post?resort=" + encodeURIComponent(selectedResort);
+  if (loading)
+    return (
+      <p role="status" className="p-6">
+        ログイン状態を確認しています…
+      </p>
+    );
+  if (!canPost(user))
+    return (
+      <main className="min-h-screen bg-slate-950 px-5 py-8 text-white">
+        <div className="mx-auto max-w-md">
+          <h1 className="text-2xl font-bold">投稿にはログインが必要です</h1>
+          <p className="my-5">
+            メール認証を完了したアカウントをご利用ください。
+          </p>
+          <Link
+            className="block rounded-xl bg-sky-500 p-4 text-center font-bold"
+            href={"/login?next=" + encodeURIComponent(loginNext)}
+          >
+            ログイン
+          </Link>
+          <Link
+            className="mt-4 block p-3 text-sky-400"
+            href={"/signup?next=" + encodeURIComponent(loginNext)}
+          >
+            新規登録
+          </Link>
+          <Link className="mt-4 block p-3 text-sky-400" href="/">
+            スキー場一覧へ戻る
+          </Link>
+        </div>
+      </main>
+    );
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -53,9 +104,7 @@ const selectedResort = searchParams.get("resort") || "オーンズ";
             SNOW NOW
           </p>
 
-          <h1 className="text-3xl font-bold">
-            コンディションを投稿
-          </h1>
+          <h1 className="text-3xl font-bold">コンディションを投稿</h1>
 
           <p className="mt-2 text-sm text-slate-400">
             今いるスキー場の状況を教えてください
@@ -63,11 +112,8 @@ const selectedResort = searchParams.get("resort") || "オーンズ";
         </header>
 
         <div className="space-y-6">
-
           <div>
-            <label className="mb-2 block text-sm font-semibold">
-              スキー場
-            </label>
+            <label className="mb-2 block text-sm font-semibold">スキー場</label>
 
             <select
               value={resort}
@@ -80,9 +126,7 @@ const selectedResort = searchParams.get("resort") || "オーンズ";
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-semibold">
-              エリア
-            </label>
+            <label className="mb-2 block text-sm font-semibold">エリア</label>
 
             <select
               value={area}
@@ -97,9 +141,7 @@ const selectedResort = searchParams.get("resort") || "オーンズ";
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-semibold">
-              雪質
-            </label>
+            <label className="mb-2 block text-sm font-semibold">雪質</label>
 
             <select
               value={snowType}
@@ -153,9 +195,7 @@ const selectedResort = searchParams.get("resort") || "オーンズ";
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-semibold">
-              混雑
-            </label>
+            <label className="mb-2 block text-sm font-semibold">混雑</label>
 
             <select
               value={crowd}
@@ -195,18 +235,24 @@ const selectedResort = searchParams.get("resort") || "オーンズ";
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               rows={4}
+              maxLength={1000}
               placeholder="例：上部はまだパウダー残ってます！"
               className="w-full resize-none rounded-xl border border-slate-700 bg-slate-900 p-4"
             />
           </div>
 
+          {submitError && (
+            <p role="alert" className="text-amber-300">
+              {submitError}
+            </p>
+          )}
           <button
+            disabled={submitting}
             onClick={handleSubmit}
             className="w-full rounded-2xl bg-sky-500 px-4 py-4 font-bold"
           >
-            投稿する
+            {submitting ? "投稿中…" : "投稿する"}
           </button>
-
         </div>
 
         <p className="mt-6 text-center text-xs text-slate-600">

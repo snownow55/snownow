@@ -15,7 +15,24 @@ type SnowPost = {
   condition: string;
   comment: string;
   createdAt: string;
+  timeAgo: string;
 };
+
+  function getTimeAgo(createdAt: string) {
+    const minutes = Math.floor(
+      (Date.now() - new Date(createdAt).getTime()) / 60000
+    );
+
+    if (minutes < 1) return "たった今";
+    if (minutes < 60) return `${minutes}分前`;
+
+    const hours = Math.floor(minutes / 60);
+
+    if (hours < 24) return `${hours}時間前`;
+
+    return `${Math.floor(hours / 24)}日前`;
+  }
+
 
 export default function ResortPage() {
   const params = useParams();
@@ -25,6 +42,7 @@ export default function ResortPage() {
 
  useEffect(() => {
   async function loadPosts() {
+    if (!supabase) return;
     const { data, error } = await supabase
       .from("snow_posts")
       .select("*")
@@ -47,6 +65,7 @@ export default function ResortPage() {
       condition: post.condition,
       comment: post.comment,
       createdAt: post.created_at,
+      timeAgo: getTimeAgo(post.created_at),
     }));
 
     setPosts(formattedPosts);
@@ -55,20 +74,6 @@ export default function ResortPage() {
   loadPosts();
 }, [resortName]);
 
-  function getTimeAgo(createdAt: string) {
-    const minutes = Math.floor(
-      (Date.now() - new Date(createdAt).getTime()) / 60000
-    );
-
-    if (minutes < 1) return "たった今";
-    if (minutes < 60) return `${minutes}分前`;
-
-    const hours = Math.floor(minutes / 60);
-
-    if (hours < 24) return `${hours}時間前`;
-
-    return `${Math.floor(hours / 24)}日前`;
-  }
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -129,7 +134,7 @@ export default function ResortPage() {
                     </p>
 
                     <p className="mt-1 text-xs text-slate-500">
-                      {getTimeAgo(post.createdAt)}
+                      {post.timeAgo}
                     </p>
                   </div>
 
