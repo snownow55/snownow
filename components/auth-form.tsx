@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { safeNext } from "@/lib/auth-policy";
 import { useAuth } from "./auth-provider";
 type Mode = "login" | "signup" | "forgot" | "reset";
+const MIN_PASSWORD_LENGTH = 8;
 const titles = {
   login: "ログイン",
   signup: "新規登録",
@@ -28,6 +29,13 @@ export function AuthForm({ mode }: { mode: Mode }) {
     if (!supabase || busy) return;
     setError("");
     setMessage("");
+    if (
+      (mode === "signup" || mode === "reset") &&
+      password.length < MIN_PASSWORD_LENGTH
+    ) {
+      setError(`パスワードは${MIN_PASSWORD_LENGTH}文字以上で入力してください。`);
+      return;
+    }
     if ((mode === "signup" || mode === "reset") && password !== confirmation) {
       setError("パスワードが一致していません。");
       return;
@@ -175,7 +183,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
                 autoComplete={
                   mode === "login" ? "current-password" : "new-password"
                 }
-                minLength={mode === "login" ? undefined : 12}
+                minLength={mode === "login" ? undefined : MIN_PASSWORD_LENGTH}
                 maxLength={128}
                 required
                 value={password}
@@ -186,7 +194,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
           {(mode === "signup" || mode === "reset") && (
             <>
               <p className="text-sm text-slate-300">
-                12文字以上で入力してください。
+                {MIN_PASSWORD_LENGTH}文字以上で入力してください。
               </p>
               <label className="block">
                 パスワード（確認）

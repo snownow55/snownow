@@ -35,11 +35,32 @@ test("registration, confirmation resend and verified email callback", async ({
 }) => {
   await page.goto("/signup");
   await page.getByLabel("メールアドレス").fill("snow@example.test");
-  await page
-    .getByLabel("パスワード", { exact: true })
-    .fill("fixture-password-123");
-  await page.getByLabel("パスワード（確認）").fill("fixture-password-123");
-  await page.getByRole("button", { name: "新規登録", exact: true }).click();
+  const password = page.getByLabel("パスワード", { exact: true });
+  const confirmation = page.getByLabel("パスワード（確認）");
+  const submit = page.getByRole("button", { name: "新規登録", exact: true });
+  let signupRequests = 0;
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === "/auth/v1/signup") signupRequests++;
+  });
+  await expect(password).toHaveAttribute("minlength", "8");
+  await expect(page.getByText("8文字以上で入力してください。", { exact: true })).toBeVisible();
+  await password.fill("Abcd123");
+  await confirmation.fill("Abcd123");
+  await submit.click();
+  expect(await password.evaluate((input: HTMLInputElement) => input.validity.tooShort)).toBe(true);
+  expect(signupRequests).toBe(0);
+  // The submit handler must also reject short passwords if native validation is bypassed.
+  await page.locator("form").evaluate((form: HTMLFormElement) => { form.noValidate = true; });
+  await submit.click();
+  await expect(page.getByRole("alert").filter({ hasText: "パスワードは8文字以上で入力してください。" })).toHaveText("パスワードは8文字以上で入力してください。");
+  expect(signupRequests).toBe(0);
+  await password.fill("Abcd1234");
+  await confirmation.fill("Abcd1234");
+  const [signupRequest] = await Promise.all([
+    page.waitForRequest((request) => new URL(request.url()).pathname === "/auth/v1/signup"),
+    submit.click(),
+  ]);
+  expect(signupRequest.postDataJSON().password).toBe("Abcd1234");
   await expect(
     page.getByRole("status").filter({ hasText: "確認メールを送信" }),
   ).toBeVisible();
@@ -61,7 +82,16 @@ test("login preserves selected resort and verified user can submit; logout remov
     page.getByRole("heading", { name: "コンディションを投稿" }),
   ).toBeVisible();
   await expect(page.locator("select").first()).toHaveValue("キロロ");
+  await expect(page.getByText("営業開始後の積雪", { exact: true })).toBeVisible();
+  await expect(page.getByText("営業時間後の積雪", { exact: true })).toHaveCount(0);
+  expect(await page.locator("select").nth(3).locator("option").evaluateAll(
+    (options) => options.map((option) => (option as HTMLOptionElement).value),
+  )).toEqual(["ほぼ無し", "うっすら積もった", "そこそこ積もった", "かなり積もった", "分からない"]);
+  const postRequest = page.waitForRequest((request) =>
+    new URL(request.url()).pathname === "/api/posts" && request.method() === "POST",
+  );
   await page.getByRole("button", { name: "投稿する", exact: true }).click();
+  expect((await postRequest).postDataJSON().snowfall).toBe("ほぼ無し");
   await expect(page).toHaveURL("http://127.0.0.1:3100/");
   await page.getByRole("button", { name: "ログアウト" }).click();
   await expect(
@@ -110,11 +140,23 @@ test("password recovery, update and invalid callback handling", async ({
     "/auth/callback?token_hash=valid-fixture-token&type=recovery&next=//evil.test",
   );
   await expect(page).toHaveURL(/\/reset-password$/);
-  await page
-    .getByLabel("新しいパスワード", { exact: true })
-    .fill("new-fixture-password-123");
-  await page.getByLabel("パスワード（確認）").fill("new-fixture-password-123");
+  const password = page.getByLabel("新しいパスワード", { exact: true });
+  await expect(password).toHaveAttribute("minlength", "8");
+  await expect(page.getByText("8文字以上で入力してください。", { exact: true })).toBeVisible();
+  await password.fill("Abcd123");
+  await page.getByLabel("パスワード（確認）").fill("Abcd123");
   await page.getByRole("button", { name: "パスワードを変更" }).click();
+  expect(await password.evaluate((input: HTMLInputElement) => input.validity.tooShort)).toBe(true);
+  await page.locator("form").evaluate((form: HTMLFormElement) => { form.noValidate = true; });
+  await page.getByRole("button", { name: "パスワードを変更" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "パスワードは8文字以上で入力してください。" })).toHaveText("パスワードは8文字以上で入力してください。");
+  await password.fill("Abcd1234");
+  await page.getByLabel("パスワード（確認）").fill("Abcd1234");
+  const updateRequest = page.waitForRequest((request) =>
+    new URL(request.url()).pathname === "/auth/v1/user" && request.method() === "PUT",
+  );
+  await page.getByRole("button", { name: "パスワードを変更" }).click();
+  expect((await updateRequest).postDataJSON().password).toBe("Abcd1234");
   await expect(page).toHaveURL(/\/login\?notice=password-updated$/);
   await page.goto("/auth/callback?token_hash=expired&type=signup");
   await expect(
