@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useResortMaster } from "@/lib/use-resort-master";
+import { postUrl, regionUrl } from "@/lib/resort-master";
 type SnowPost = {
   id: number;
   resort: string;
@@ -16,17 +19,6 @@ type SnowPost = {
   createdAt: string;
   timeAgo: string;
 };
-
-const resorts = [
-  {
-    name: "オーンズ",
-    area: "札幌・小樽",
-  },
-  {
-    name: "キロロ",
-    area: "赤井川",
-  },
-];
 
   function getTimeAgo(createdAt: string) {
     const minutes = Math.floor(
@@ -44,23 +36,29 @@ const resorts = [
   }
 
 
-export default function Home() {
+function Home() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const master = useResortMaster();
+  const regionCode = searchParams.get("region") ?? master.data?.regions[0]?.code;
+  const selectedRegion = master.data?.regions.find((region) => region.code === regionCode);
+  const resorts = master.data?.resorts.filter((resort) => resort.region_code === selectedRegion?.code && resort.is_active) ?? [];
   const [posts, setPosts] = useState<SnowPost[]>([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [postsError, setPostsError] = useState("");
 
  useEffect(() => {
+  let active = true;
   async function loadPosts() {
-    if (!supabase) return;
+    if (!supabase) throw new Error("Unavailable");
     const { data, error } = await supabase
       .from("snow_posts")
-      .select("*")
+      .select("id,resort,area,snow_type,snowfall,roughness,crowd,condition,comment,created_at")
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("読み込みエラー:", error);
-      return;
-    }
+    if (error || !Array.isArray(data)) throw new Error("Post read failed");
 
-    const formattedPosts: SnowPost[] = (data || []).map((post) => ({
+    const formattedPosts: SnowPost[] = data.map((post) => ({
       id: post.id,
       resort: post.resort,
       area: post.area,
@@ -74,10 +72,13 @@ export default function Home() {
       timeAgo: getTimeAgo(post.created_at),
     }));
 
-    setPosts(formattedPosts);
+    if (active) { setPosts(formattedPosts); setPostsLoading(false); }
   }
 
-  loadPosts();
+  loadPosts().catch(() => {
+    if (active) { setPostsError("投稿情報を取得できませんでした。"); setPostsLoading(false); }
+  });
+  return () => { active = false; };
 }, []);
 
 
@@ -99,16 +100,40 @@ export default function Home() {
           </p>
         </header>
 
-        <section>
+        {master.loading && <p role="status" className="mb-6">エリア・スキー場を読み込んでいます…</p>}
+        {master.error && (
+          <div className="mb-6" role="alert">
+            <p className="text-amber-300">{master.error}</p>
+            <button className="min-h-11 py-3 text-sky-400" onClick={master.retry}>再読み込み</button>
+          </div>
+        )}
+        {master.data && (
+          <section aria-label="エリア選択" className="mb-8">
+            <h2 className="mb-3 text-lg font-semibold">エリアを選ぶ</h2>
+            <div className="grid grid-cols-3 gap-2">
+              {master.data.regions.map((region) => (
+                <button key={region.code} aria-pressed={region.code === selectedRegion?.code}
+                  onClick={() => router.replace(regionUrl(region.code), { scroll: false })}
+                  className={`min-h-11 rounded-xl border px-2 py-3 text-sm break-words ${region.code === selectedRegion?.code ? "border-sky-400 bg-sky-500/20 text-sky-300" : "border-slate-700 bg-slate-900"}`}>
+                  {region.name}
+                </button>
+              ))}
+            </div>
+            {!selectedRegion && <p role="alert" className="mt-3 text-amber-300">指定されたエリアが見つかりません。エリアを選び直してください。</p>}
+          </section>
+        )}
+        <section aria-label="スキー場一覧">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold">
-              スキー場
+              {selectedRegion ? `${selectedRegion.name}のスキー場` : "スキー場"}
             </h2>
 
             <span className="text-xs text-slate-500">
               現地速報
             </span>
           </div>
+          {postsError && <p role="alert" className="mb-4 text-amber-300">{postsError}</p>}
+          {master.data && selectedRegion && !resorts.length && <p>このエリアには現在投稿できるスキー場がありません。</p>}
 
           <div className="space-y-4">
             {resorts.map((resort) => {
@@ -126,12 +151,12 @@ export default function Home() {
                 >
                   <div className="mb-4 flex items-start justify-between">
                     <div>
-                      <h3 className="text-xl font-bold">
-                        {resort.name}
+                      <h3 className="text-xl font-bold break-words">
+                        {resort.display_name}
                       </h3>
 
                       <p className="text-sm text-slate-400">
-                        {resort.area}
+                        {selectedRegion?.name}
                       </p>
                     </div>
 
@@ -205,7 +230,7 @@ export default function Home() {
                   ) : (
                     <div className="rounded-xl bg-slate-950 p-4">
                       <p className="text-sm text-slate-400">
-                        まだ現地速報がありません
+                        {postsLoading ? "投稿情報を読み込んでいます…" : postsError ? "投稿情報を表示できません" : "まだ現地速報がありません"}
                       </p>
                     </div>
                   )}
@@ -216,7 +241,7 @@ export default function Home() {
         </section>
 
         <Link
-          href="/post"
+          href={postUrl(undefined, selectedRegion?.code)}
           className="mt-6 block w-full rounded-2xl bg-sky-500 px-4 py-4 text-center font-bold"
         >
           ＋ 現地のコンディションを投稿
@@ -229,4 +254,8 @@ export default function Home() {
       </div>
     </main>
   );
+}
+
+export default function HomePage() {
+  return <Suspense fallback={<p role="status" className="p-6">読み込み中…</p>}><Home /></Suspense>;
 }

@@ -1,18 +1,30 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/auth-provider";
 import { canPost } from "@/lib/auth-policy";
+import { useResortMaster } from "@/lib/use-resort-master";
+import { postUrl, regionUrl } from "@/lib/resort-master";
 function PostForm() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+  const [selectionPending, startSelectionTransition] = useTransition();
   const [submitError, setSubmitError] = useState("");
   const searchParams = useSearchParams();
-  const selectedResort = searchParams.get("resort") || "オーンズ";
-  const [resort, setResort] = useState(selectedResort);
+  const master = useResortMaster();
+  const requestedResort = searchParams.get("resort");
+  const requestedRegion = searchParams.get("region");
+  const specifiedResort = master.data?.resorts.find((item) => item.name === requestedResort);
+  const regionCode = requestedRegion ?? specifiedResort?.region_code ?? master.data?.regions[0]?.code;
+  const region = master.data?.regions.find((item) => item.code === regionCode);
+  const resorts = master.data?.resorts.filter((item) => item.region_code === region?.code && item.is_active) ?? [];
+  const selectedResort = requestedResort === null ? resorts[0] : resorts.find((item) => item.name === requestedResort);
+  const resort = selectedResort?.name ?? "";
+  const selectionError = master.data && (!region || (requestedResort !== null && !selectedResort))
+    ? "指定されたエリア・スキー場は投稿対象として選択できません。選び直してください。" : "";
   const [area, setArea] = useState("山頂・上部");
   const [snowType, setSnowType] = useState("パウダー");
   const [snowfall, setSnowfall] = useState("ほぼ無し");
@@ -22,7 +34,7 @@ function PostForm() {
   const [comment, setComment] = useState("");
 
   async function handleSubmit() {
-    if (!canPost(user) || submitting) return;
+    if (!canPost(user) || submitting || selectionPending || master.loading || master.error || !selectedResort || selectionError) return;
     setSubmitting(true);
     setSubmitError("");
     try {
@@ -48,14 +60,14 @@ function PostForm() {
         );
         return;
       }
-      router.push("/");
+      router.push(regionUrl(selectedResort.region_code));
     } catch {
       setSubmitError("通信に失敗しました。もう一度お試しください。");
     } finally {
       setSubmitting(false);
     }
   }
-  const loginNext = "/post?resort=" + encodeURIComponent(selectedResort);
+  const loginNext = postUrl(requestedResort ?? undefined, requestedRegion ?? undefined);
   if (loading)
     return (
       <p role="status" className="p-6">
@@ -93,7 +105,7 @@ function PostForm() {
     <main className="min-h-screen bg-slate-950 text-white">
       <div className="mx-auto max-w-md px-5 py-8">
         <button
-          onClick={() => router.push("/")}
+          onClick={() => router.push(regionUrl(region?.code))}
           className="mb-6 text-sm text-sky-400"
         >
           ← 戻る
@@ -112,24 +124,41 @@ function PostForm() {
         </header>
 
         <div className="space-y-6">
+          {master.loading && <p role="status">エリア・スキー場を読み込んでいます…</p>}
+          {master.error && <div role="alert" className="text-amber-300">
+            <p>{master.error}</p>
+            <button onClick={master.retry} className="min-h-11 py-3 text-sky-400">再読み込み</button>
+          </div>}
+          {selectionError && <p role="alert" className="text-amber-300">{selectionError}</p>}
           <div>
-            <label className="mb-2 block text-sm font-semibold">スキー場</label>
+            <label htmlFor="region" className="mb-2 block text-sm font-semibold">エリア</label>
+            <select id="region" value={region?.code ?? ""} disabled={master.loading || !!master.error || submitting || selectionPending}
+              onChange={(e) => startSelectionTransition(() => router.replace(postUrl(undefined, e.target.value), { scroll: false }))}
+              className="w-full rounded-xl border border-slate-700 bg-slate-900 p-4">
+              <option value="" disabled>エリアを選択してください</option>
+              {master.data?.regions.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="resort" className="mb-2 block text-sm font-semibold">スキー場</label>
 
             <select
-              value={resort}
-              onChange={(e) => setResort(e.target.value)}
+              id="resort" value={resort}
+              disabled={master.loading || !!master.error || !region || submitting || selectionPending || !resorts.length}
+              onChange={(e) => startSelectionTransition(() => router.replace(postUrl(e.target.value, region?.code), { scroll: false }))}
               className="w-full rounded-xl border border-slate-700 bg-slate-900 p-4"
             >
-              <option>オーンズ</option>
-              <option>キロロ</option>
+              <option value="" disabled>スキー場を選択してください</option>
+              {resorts.map((item) => <option key={item.id} value={item.name}>{item.display_name}</option>)}
             </select>
+            {master.data && region && !resorts.length && <p role="status" className="mt-2">このエリアには現在投稿できるスキー場がありません。</p>}
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-semibold">エリア</label>
+            <label htmlFor="slope-area" className="mb-2 block text-sm font-semibold">ゲレンデ内の位置</label>
 
             <select
-              value={area}
+              id="slope-area" value={area}
               onChange={(e) => setArea(e.target.value)}
               className="w-full rounded-xl border border-slate-700 bg-slate-900 p-4"
             >
@@ -160,12 +189,12 @@ function PostForm() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-semibold">
+            <label htmlFor="snowfall" className="mb-2 block text-sm font-semibold">
               営業開始後の積雪
             </label>
 
             <select
-              value={snowfall}
+              id="snowfall" value={snowfall}
               onChange={(e) => setSnowfall(e.target.value)}
               className="w-full rounded-xl border border-slate-700 bg-slate-900 p-4"
             >
@@ -247,7 +276,7 @@ function PostForm() {
             </p>
           )}
           <button
-            disabled={submitting}
+            disabled={submitting || selectionPending || master.loading || !!master.error || !selectedResort || !!selectionError}
             onClick={handleSubmit}
             className="w-full rounded-2xl bg-sky-500 px-4 py-4 font-bold"
           >

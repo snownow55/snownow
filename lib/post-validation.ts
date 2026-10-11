@@ -1,5 +1,4 @@
 const choices: Record<string, readonly string[]> = {
-  resort: ["オーンズ", "キロロ"],
   area: ["山頂・上部", "中腹", "山麓・下部", "全体"],
   snow_type: [
     "パウダー",
@@ -27,10 +26,12 @@ export function validPost(value: unknown): value is Record<string, string> {
   const post = value as Record<string, unknown>;
   if (
     Object.keys(post).length !== 8 ||
-    Object.keys(post).some((key) => !(key in choices) && key !== "comment")
+    Object.keys(post).some((key) => !Object.hasOwn(choices, key) && key !== "comment" && key !== "resort")
   )
     return false;
   return (
+    // Existence and active status are checked against the DB in the API.
+    typeof post.resort === "string" && post.resort.trim().length > 0 && post.resort.length <= 200 &&
     Object.entries(choices).every(
       ([key, values]) =>
         typeof post[key] === "string" && values.includes(post[key] as string),

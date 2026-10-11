@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useResortMaster } from "@/lib/use-resort-master";
+import { postUrl, regionUrl } from "@/lib/resort-master";
 type SnowPost = {
   id: number;
   resort: string;
@@ -35,26 +37,33 @@ type SnowPost = {
 
 
 export default function ResortPage() {
-  const params = useParams();
-  const resortName = decodeURIComponent(params.name as string);
+  const { name: segment } = useParams<{ name: string }>();
+  let resortName = "";
+  try { resortName = decodeURIComponent(segment); } catch { /* Invalid URL: no master match. */ }
+  const master = useResortMaster();
+  const resort = master.data?.resorts.find((item) => item.name === resortName);
+  const region = master.data?.regions.find((item) => item.code === resort?.region_code);
+  const canonicalName = resort?.name;
 
-  const [posts, setPosts] = useState<SnowPost[]>([]);
+  const [postState, setPostState] = useState<{ name: string; posts: SnowPost[]; error: string }>({ name: "", posts: [], error: "" });
+  const posts = postState.name === canonicalName ? postState.posts : [];
+  const postsLoading = postState.name !== canonicalName;
+  const postsError = postState.name === canonicalName ? postState.error : "";
 
  useEffect(() => {
+  if (!canonicalName) return;
+  let active = true;
   async function loadPosts() {
-    if (!supabase) return;
+    if (!supabase) throw new Error("Unavailable");
     const { data, error } = await supabase
       .from("snow_posts")
-      .select("*")
-      .eq("resort", resortName)
+      .select("id,resort,area,snow_type,snowfall,roughness,crowd,condition,comment,created_at")
+      .eq("resort", canonicalName)
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("読み込みエラー:", error);
-      return;
-    }
+    if (error || !Array.isArray(data)) throw new Error("Post read failed");
 
-    const formattedPosts: SnowPost[] = (data || []).map((post) => ({
+    const formattedPosts: SnowPost[] = data.map((post) => ({
       id: post.id,
       resort: post.resort,
       area: post.area,
@@ -68,19 +77,32 @@ export default function ResortPage() {
       timeAgo: getTimeAgo(post.created_at),
     }));
 
-    setPosts(formattedPosts);
+    if (active) setPostState({ name: canonicalName!, posts: formattedPosts, error: "" });
   }
 
-  loadPosts();
-}, [resortName]);
+  loadPosts().catch(() => {
+    if (active) setPostState({ name: canonicalName, posts: [], error: "投稿情報を取得できませんでした。" });
+  });
+  return () => { active = false; };
+}, [canonicalName]);
 
+  if (master.loading) return <p role="status" className="p-6">スキー場を読み込んでいます…</p>;
+  if (master.error) return <main className="p-6">
+    <p role="alert" className="text-amber-300">{master.error}</p>
+    <button className="min-h-11 py-3 text-sky-400" onClick={master.retry}>再読み込み</button>
+    <Link className="block py-3 text-sky-400" href="/">スキー場一覧へ戻る</Link>
+  </main>;
+  if (!resort) return <main className="p-6">
+    <h1 className="text-xl font-bold">指定されたスキー場が見つかりません</h1>
+    <Link className="block py-3 text-sky-400" href="/">スキー場一覧へ戻る</Link>
+  </main>;
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <div className="mx-auto max-w-md px-5 py-8">
 
         <Link
-          href="/"
+          href={regionUrl(resort.region_code)}
           className="text-sm font-semibold text-sky-400"
         >
           ← スキー場一覧
@@ -91,12 +113,12 @@ export default function ResortPage() {
             SNOW NOW
           </p>
 
-          <h1 className="text-3xl font-bold">
-            {resortName}
+          <h1 className="text-3xl font-bold break-words">
+            {resort.display_name}
           </h1>
 
           <p className="mt-2 text-sm text-slate-400">
-            現地からのリアルタイム速報
+            {region?.name}・現地からのリアルタイム速報
           </p>
         </header>
 
@@ -110,7 +132,7 @@ export default function ResortPage() {
           </span>
         </div>
 
-        {posts.length === 0 ? (
+        {postsLoading ? <p role="status">投稿情報を読み込んでいます…</p> : postsError ? <p role="alert" className="text-amber-300">{postsError}</p> : posts.length === 0 ? (
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-center">
             <p className="font-semibold">
               まだ投稿がありません
@@ -185,13 +207,13 @@ export default function ResortPage() {
           </div>
         )}
 
-        <Link
-          href={`/post?resort=${encodeURIComponent(resortName)}`}
+        {resort.is_active ? <Link
+          href={postUrl(resort.name, resort.region_code)}
       
           className="mt-6 block w-full rounded-2xl bg-sky-500 px-4 py-4 text-center font-bold"
         >
           ＋ このスキー場の情報を投稿
-        </Link>
+        </Link> : <p role="status" className="mt-6 text-amber-300">現在はこのスキー場への投稿を受け付けていません。</p>}
       </div>
     </main>
   );

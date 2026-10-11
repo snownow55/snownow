@@ -81,10 +81,10 @@ test("login preserves selected resort and verified user can submit; logout remov
   await expect(
     page.getByRole("heading", { name: "コンディションを投稿" }),
   ).toBeVisible();
-  await expect(page.locator("select").first()).toHaveValue("キロロ");
+  await expect(page.getByLabel("スキー場", { exact: true })).toHaveValue("キロロ");
   await expect(page.getByText("営業開始後の積雪", { exact: true })).toBeVisible();
   await expect(page.getByText("営業時間後の積雪", { exact: true })).toHaveCount(0);
-  expect(await page.locator("select").nth(3).locator("option").evaluateAll(
+  expect(await page.getByLabel("営業開始後の積雪", { exact: true }).locator("option").evaluateAll(
     (options) => options.map((option) => (option as HTMLOptionElement).value),
   )).toEqual(["ほぼ無し", "うっすら積もった", "そこそこ積もった", "かなり積もった", "分からない"]);
   const postRequest = page.waitForRequest((request) =>
@@ -92,7 +92,7 @@ test("login preserves selected resort and verified user can submit; logout remov
   );
   await page.getByRole("button", { name: "投稿する", exact: true }).click();
   expect((await postRequest).postDataJSON().snowfall).toBe("ほぼ無し");
-  await expect(page).toHaveURL("http://127.0.0.1:3100/");
+  await expect(page).toHaveURL("http://127.0.0.1:3100/?region=sapporo");
   await page.getByRole("button", { name: "ログアウト" }).click();
   await expect(
     page.getByRole("navigation").getByRole("link", { name: "ログイン" }),

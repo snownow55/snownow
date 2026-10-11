@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { safeNext, canPost } from "../lib/auth-policy.ts";
 import { siteOrigin } from "../lib/site-origin.ts";
 import { validPost } from "../lib/post-validation.ts";
+import { createClient } from "@supabase/supabase-js";
+import { loadResortMaster, findResort, postUrl, regionUrl } from "../lib/resort-master.ts";
 test("callback rejects external, protocol-relative and control-character destinations", () => {
   for (const path of [
     "https://evil.test",
@@ -50,12 +52,76 @@ test("post validation preserves choices and rejects tampering", () => {
     null,
     [],
     {},
-    { ...post, resort: "偽のスキー場" },
+    { ...post, resort: "" },
+    { ...post, resort: " " },
+    { ...post, resort: 123 },
+    { ...post, resort: "a".repeat(201) },
     { ...post, comment: "a".repeat(1001) },
     { ...post, user_id: "other-user" },
     { ...post, created_at: "2100-01-01" },
   ])
     assert.equal(validPost(invalid), false);
+});
+
+test("post shape accepts master names; DB membership is checked separately by the API", () => {
+  for (const resort of ["オーンズ", "キロロ", "さっぽろばんけい", "Fu'sスノーエリア", "国設阿寒湖畔スキー場 ウタラ"]) {
+    assert.equal(validPost({ ...post, resort }), true);
+  }
+  for (const field of ["area", "snow_type", "snowfall", "roughness", "crowd", "condition"]) {
+    assert.equal(validPost({ ...post, [field]: "不正な選択値" }), false);
+  }
+  assert.equal(validPost({ ...post, region_code: "sapporo" }), false);
+  assert.equal(validPost({ ...post, display_name: "スノークルーズオーンズ" }), false);
+});
+
+const masterRegion = { code: "sapporo", name: "札幌近郊", sort_order: 1 };
+const masterResort = { id: 1, name: "オーンズ", display_name: "スノークルーズオーンズ",
+  region_code: "sapporo", sort_order: 6, is_active: true };
+function masterClient(regions: unknown, resorts: unknown, fail = false) {
+  return createClient("http://127.0.0.1:54321", "sb_publishable_unit_fixture_only", {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { fetch: async (input) => {
+      const url = new URL(String(input));
+      let rows = url.pathname.endsWith("regions") ? regions : resorts;
+      const name = url.searchParams.get("name")?.slice(3);
+      if (name && Array.isArray(rows)) rows = rows.filter((row) => row.name === name);
+      return new Response(JSON.stringify(fail ? { message: "fixture failure" } : rows), {
+        status: fail ? 403 : 200, headers: { "Content-Type": "application/json" },
+      });
+    } },
+  });
+}
+test("master lookup preserves canonical names and inactive state without writing", async () => {
+  const client = masterClient([masterRegion], [masterResort]);
+  const master = await loadResortMaster(client);
+  assert.equal(master.resorts[0].name, "オーンズ");
+  assert.equal(master.resorts[0].display_name, "スノークルーズオーンズ");
+  assert.equal(await findResort(client, "スノークルーズオーンズ"), null);
+  assert.equal(await findResort(client, "未登録"), null);
+  const inactive = await findResort(masterClient([masterRegion], [{ ...masterResort, is_active: false }]), "オーンズ");
+  assert.equal(inactive?.is_active, false);
+});
+test("missing, partial, malformed, and inconsistent masters fail closed", async () => {
+  await assert.rejects(() => loadResortMaster(null));
+  for (const [regions, resorts] of [
+    [[], [masterResort]], [[masterRegion], []], [null, [masterResort]],
+    [[masterRegion], [{ ...masterResort, is_active: undefined }]],
+    [[masterRegion], [{ ...masterResort, region_code: "unknown" }]],
+    [[masterRegion, masterRegion], [masterResort]],
+    [[masterRegion], [masterResort, masterResort]],
+  ]) await assert.rejects(() => loadResortMaster(masterClient(regions, resorts)));
+  await assert.rejects(() => loadResortMaster(masterClient([masterRegion], [masterResort], true)));
+  await assert.rejects(() => findResort(masterClient([masterRegion], [masterResort], true), "オーンズ"));
+});
+test("master URLs retain region and internal names through safe authentication redirects", () => {
+  for (const name of ["オーンズ", "キロロ", "Fu'sスノーエリア", "国設阿寒湖畔スキー場 ウタラ"]) {
+    const path = postUrl(name, "sapporo");
+    const url = new URL(safeNext(path), "https://snow.invalid");
+    assert.equal(url.searchParams.get("resort"), name);
+    assert.equal(url.searchParams.get("region"), "sapporo");
+  }
+  assert.equal(postUrl(), "/post");
+  assert.equal(regionUrl("doto"), "/?region=doto");
 });
 
 test("canonical site origin overrides request host and rejects unsafe configuration", () => {
