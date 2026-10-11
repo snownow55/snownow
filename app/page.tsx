@@ -1,23 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useResortMaster } from "@/lib/use-resort-master";
 import { postUrl, regionUrl } from "@/lib/resort-master";
-type SnowPost = {
-  id: number;
-  resort: string;
-  area: string;
-  snowType: string;
-  snowfall: string;
-  roughness: string;
-  crowd: string;
-  comment: string;
-  createdAt: string;
-  timeAgo: string;
-};
+import { sortResorts, type ResortSort } from "@/lib/resort-sort";
+import { loadResortPostSummaries, POSTS_ERROR, type ResortPostSummary } from "@/lib/resort-post-summary";
 
   function getTimeAgo(createdAt: string) {
     const minutes = Math.floor(
@@ -41,43 +31,39 @@ function Home() {
   const master = useResortMaster();
   const regionCode = searchParams.get("region") ?? master.data?.regions[0]?.code;
   const selectedRegion = master.data?.regions.find((region) => region.code === regionCode);
-  const resorts = master.data?.resorts.filter((resort) => resort.region_code === selectedRegion?.code && resort.is_active) ?? [];
-  const [posts, setPosts] = useState<SnowPost[]>([]);
-  const [postsLoading, setPostsLoading] = useState(true);
-  const [postsError, setPostsError] = useState("");
-
- useEffect(() => {
-  let active = true;
-  async function loadPosts() {
-    if (!supabase) throw new Error("Unavailable");
-    const { data, error } = await supabase
-      .from("snow_posts")
-      .select("id,resort,area,snow_type,snowfall,roughness,crowd,comment,created_at")
-      .order("created_at", { ascending: false });
-
-    if (error || !Array.isArray(data)) throw new Error("Post read failed");
-
-    const formattedPosts: SnowPost[] = data.map((post) => ({
-      id: post.id,
-      resort: post.resort,
-      area: post.area,
-      snowType: post.snow_type,
-      snowfall: post.snowfall,
-      roughness: post.roughness,
-      crowd: post.crowd,
-      comment: post.comment,
-      createdAt: post.created_at,
-      timeAgo: getTimeAgo(post.created_at),
-    }));
-
-    if (active) { setPosts(formattedPosts); setPostsLoading(false); }
-  }
-
-  loadPosts().catch(() => {
-    if (active) { setPostsError("投稿情報を取得できませんでした。"); setPostsLoading(false); }
+  const resortsInRegion = useMemo(() => master.data?.resorts.filter(
+    (resort) => resort.region_code === selectedRegion?.code && resort.is_active,
+  ) ?? [], [master.data, selectedRegion?.code]);
+  const [sortOrder, setSortOrder] = useState<ResortSort>("kana");
+  const postKey = JSON.stringify(resortsInRegion.map((resort) => resort.name));
+  const [postState, setPostState] = useState<{
+    key: string;
+    summaries: Map<string, ResortPostSummary>;
+    error: string;
+  } | null>(null);
+  // A new region never displays the previous region's counts or post content.
+  const currentPosts = postState?.key === postKey ? postState : null;
+  const postsLoading = resortsInRegion.length > 0 && !currentPosts;
+  const postsError = currentPosts?.error ?? "";
+  const latestDates = new Map<string, string>();
+  currentPosts?.summaries.forEach((summary, name) => {
+    if (summary.latest) latestDates.set(name, summary.latest.created_at);
   });
-  return () => { active = false; };
-}, []);
+  const resorts = sortResorts(resortsInRegion, sortOrder, latestDates);
+
+  useEffect(() => {
+    if (!resortsInRegion.length) return;
+    const controller = new AbortController();
+    loadResortPostSummaries(supabase, resortsInRegion, controller.signal).then(
+      (summaries) => {
+        if (!controller.signal.aborted) setPostState({ key: postKey, summaries, error: "" });
+      },
+      () => {
+        if (!controller.signal.aborted) setPostState({ key: postKey, summaries: new Map(), error: POSTS_ERROR });
+      },
+    );
+    return () => controller.abort();
+  }, [resortsInRegion, postKey]);
 
 
   return (
@@ -130,16 +116,30 @@ function Home() {
               現地速報
             </span>
           </div>
+          {master.data && selectedRegion && (
+            <fieldset className="mb-4">
+              <legend className="mb-2 text-sm font-semibold text-slate-300">並び順</legend>
+              <div className="grid grid-cols-2 gap-2">
+                {([["kana", "五十音順"], ["latest", "最新投稿順"]] as const).map(([value, label]) => (
+                  <button key={value} type="button" aria-pressed={sortOrder === value}
+                    disabled={value === "latest" && (postsLoading || !!postsError)}
+                    onClick={() => setSortOrder(value)}
+                    className={`min-h-11 rounded-xl border px-3 py-3 text-sm font-semibold disabled:opacity-50 ${sortOrder === value ? "border-sky-400 bg-sky-500/20 text-sky-300" : "border-slate-700 bg-slate-900"}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {sortOrder === "latest" && postsLoading && <p role="status" className="mt-2 text-xs text-slate-400">最新投稿順を読み込んでいます…</p>}
+              {sortOrder === "latest" && postsError && <p className="mt-2 text-xs text-amber-300">最新投稿順を取得できないため、五十音順で表示しています。</p>}
+            </fieldset>
+          )}
           {postsError && <p role="alert" className="mb-4 text-amber-300">{postsError}</p>}
           {master.data && selectedRegion && !resorts.length && <p>このエリアには現在投稿できるスキー場がありません。</p>}
 
           <div className="space-y-4">
             {resorts.map((resort) => {
-              const resortPosts = posts.filter(
-                (post) => post.resort === resort.name
-              );
-
-              const latestPost = resortPosts[0];
+              const summary = currentPosts?.summaries.get(resort.name);
+              const latestPost = summary?.latest;
 
               return (
                 <article
@@ -165,7 +165,7 @@ function Home() {
                         </span>
 
                         <p className="mt-2 text-xs text-sky-400">
-                          {latestPost.timeAgo}
+                          {getTimeAgo(latestPost.created_at)}
                         </p>
                       </div>
                     )}
@@ -184,7 +184,7 @@ function Home() {
                           </span>
 
                           <span className="font-semibold">
-                            {latestPost.snowType}
+                            {latestPost.snow_type}
                           </span>
                         </div>
 
@@ -231,7 +231,7 @@ function Home() {
                     </div>
                   )}
                   <div className="mt-4 border-t border-slate-800 pt-3">
-                    {latestPost && <p className="mb-3 text-xs text-slate-500">最新投稿 {resortPosts.length}件</p>}
+                    {latestPost && <p className="mb-3 text-xs text-slate-500">最新投稿 {summary?.count}件</p>}
                     <div className="grid grid-cols-2 gap-2">
                       <Link href={`/resort/${encodeURIComponent(resort.name)}`}
                         className="flex min-h-11 items-center justify-center rounded-xl border border-slate-700 px-2 py-3 text-center text-sm font-semibold text-sky-400">

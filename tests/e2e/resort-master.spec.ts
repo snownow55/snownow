@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
+import { KANA_ORDER } from "../resort-order.fixture";
 
 const fixture = "http://127.0.0.1:54321";
 const areas = [
@@ -53,7 +54,7 @@ test.afterEach(async ({ request }) => {
   await request.post(fixture + "/__control", { data: { reset: true } });
 });
 
-test("all nine regions show their 59 resorts in reviewed order on mobile", async ({ page }) => {
+test("all nine regions show their 59 resorts in kana order on mobile", async ({ page }) => {
   await page.goto("/");
   const picker = page.getByRole("region", { name: "エリア選択" });
   await expect(picker.getByRole("button")).toHaveCount(9);
@@ -62,7 +63,7 @@ test("all nine regions show their 59 resorts in reviewed order on mobile", async
     await picker.getByRole("button", { name: label, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`region=${code}$`));
     const list = page.getByRole("region", { name: "スキー場一覧" });
-    const names = manifest.filter((row) => row.region_code === code).sort((a, b) => a.sort_order - b.sort_order);
+    const names = KANA_ORDER[code].map((name) => manifest.find((row) => row.name === name)!);
     await expect(list.getByRole("article")).toHaveCount(count);
     await expect(list.getByRole("link", { name: "過去投稿を見る", exact: true })).toHaveCount(count);
     await expect(list.getByRole("link", { name: "＋ 投稿する", exact: true })).toHaveCount(count);
@@ -410,7 +411,9 @@ test("latest comments are safe text limited to three lines and empty latest comm
   let comment = '<img src=x onerror="window.commentExecuted=true">\n' + "長いコメント".repeat(150) + "\n4行目\n5行目";
   await page.route(fixture + "/rest/v1/snow_posts?**", (route) => route.fulfill({
     status: 200, contentType: "application/json",
-    body: JSON.stringify([{ ...old, id: 2, condition: null, created_at: "2026-10-11T00:00:00Z", comment }, old]),
+    headers: { "Content-Range": new URL(route.request().url()).searchParams.get("resort") === "eq.オーンズ" ? "0-0/2" : "*/0", "Access-Control-Expose-Headers": "Content-Range" },
+    body: JSON.stringify(new URL(route.request().url()).searchParams.get("resort") === "eq.オーンズ"
+      ? [{ ...old, id: 2, condition: null, created_at: "2026-10-11T00:00:00Z", comment }] : []),
   }));
   await page.goto("/");
   const card = page.getByRole("article", { name: "スノークルーズオーンズ", exact: true });
@@ -447,4 +450,88 @@ test("API normalizes an omitted rating to null and refuses non-null ratings with
     expect(await post(page, { ...body, condition: rating })).toBe(400);
   }
   expect((await (await request.get(fixture + "/__stats")).json()).inserts).toBe(1);
+});
+
+test("latest order survives region changes and preserves per-resort cards beyond the global 1000-row limit", async ({ page, request }) => {
+  const many = Array.from({ length: 1201 }, (_, index) => ({ ...body, resort: "オーンズ", id: index + 1,
+    comment: `オーンズの投稿${index + 1}`, created_at: "2026-10-11T00:00:00.000001Z" }));
+  const rows = [...many,
+    { ...body, resort: "キロロ", id: 1202, comment: "キロロの最新コメント", created_at: "2025-10-11T00:00:00Z" },
+    { ...body, resort: "朝里川温泉スキー場", id: 1203, comment: "朝里川の最新コメント", created_at: "2025-10-11T00:00:00Z" }];
+  await request.post(fixture + "/__control", { data: { posts: rows } });
+  await page.goto("/");
+  const latest = page.getByRole("button", { name: "最新投稿順", exact: true });
+  const kana = page.getByRole("button", { name: "五十音順", exact: true });
+  const list = page.getByRole("region", { name: "スキー場一覧" });
+  const picker = page.getByRole("region", { name: "エリア選択" });
+  await expect(kana).toHaveAttribute("aria-pressed", "true");
+  await expect(latest).toBeEnabled();
+  const headings = (names: readonly string[]) => names.map((name) => manifest.find((r) => r.name === name)!.display_name);
+  await expect(list.locator("h3")).toHaveText(headings(KANA_ORDER.sapporo));
+  await latest.click();
+  await expect(latest).toHaveAttribute("aria-pressed", "true");
+  const posted = ["オーンズ", "朝里川温泉スキー場", "キロロ"];
+  const expected = [...posted, ...KANA_ORDER.sapporo.filter((name) => !posted.includes(name))];
+  await expect(list.locator("h3")).toHaveText(headings(expected));
+  const owns = list.getByRole("article", { name: "スノークルーズオーンズ", exact: true });
+  await expect(owns).toContainText("最新投稿 1201件");
+  await expect(owns.getByLabel("現地コメント", { exact: true })).toHaveText("オーンズの投稿1201");
+  const kiroro = list.getByRole("article", { name: "キロロ", exact: true });
+  await expect(kiroro.getByLabel("現地コメント", { exact: true })).toHaveText("キロロの最新コメント");
+  expect(new URL((await kiroro.getByRole("link", { name: "＋ 投稿する", exact: true }).getAttribute("href"))!, page.url()).searchParams.get("resort")).toBe("キロロ");
+  await picker.getByRole("button", { name: "空知", exact: true }).click();
+  await expect(latest).toHaveAttribute("aria-pressed", "true");
+  await expect(latest).toBeEnabled();
+  await expect(list.locator("h3")).toHaveText(headings(KANA_ORDER.sorachi));
+  await expect(list.getByText("まだ現地速報がありません", { exact: true })).toHaveCount(6);
+  await picker.getByRole("button", { name: "道東", exact: true }).click();
+  await picker.getByRole("button", { name: "札幌近郊", exact: true }).click();
+  await expect(latest).toHaveAttribute("aria-pressed", "true");
+  await expect(list.locator("h3")).toHaveText(headings(expected));
+  await kana.click();
+  await expect(list.locator("h3")).toHaveText(headings(KANA_ORDER.sapporo));
+  await expect(kiroro.getByLabel("現地コメント", { exact: true })).toHaveText("キロロの最新コメント");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  const stats = await (await request.get(fixture + "/__stats")).json();
+  expect(stats.inserts).toBe(0);
+  expect(stats.posts).toEqual(rows);
+});
+
+test("latest sorting uses microsecond precision and the card stays linked to that resort", async ({ page, request }) => {
+  await request.post(fixture + "/__control", { data: { posts: [
+    { ...body, id: 1, resort: "キロロ", comment: "キロロの雪", created_at: "2026-10-11T00:00:00.000001Z" },
+    { ...body, id: 2, resort: "オーンズ", comment: "オーンズの雪", created_at: "2026-10-11T09:00:00.000002+09:00" },
+  ] } });
+  await page.goto("/");
+  await page.getByRole("button", { name: "最新投稿順", exact: true }).click();
+  const cards = page.getByRole("region", { name: "スキー場一覧" }).getByRole("article");
+  await expect(cards.first().getByRole("heading", { level: 3 })).toHaveText("スノークルーズオーンズ");
+  await expect(cards.nth(1).getByRole("heading", { level: 3 })).toHaveText("キロロ");
+  await expect(cards.first().getByLabel("現地コメント", { exact: true })).toHaveText("オーンズの雪");
+  await cards.first().getByRole("link", { name: "過去投稿を見る", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "スノークルーズオーンズ", level: 1, exact: true })).toBeVisible();
+  await expect(page.locator("article")).toContainText("オーンズの雪");
+});
+
+test("a partial resort post read failure prevents misleading latest rankings and partial cards", async ({ page }) => {
+  let failKiroro = false;
+  await page.route(fixture + "/rest/v1/snow_posts?**", async (route) => {
+    if (failKiroro && new URL(route.request().url()).searchParams.get("resort") === "eq.キロロ") {
+      await route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ message: "fixture failure" }) });
+    } else await route.continue();
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "最新投稿順", exact: true }).click();
+  failKiroro = true;
+  const picker = page.getByRole("region", { name: "エリア選択" });
+  await picker.getByRole("button", { name: "空知", exact: true }).click();
+  await expect(page.getByRole("button", { name: "最新投稿順", exact: true })).toBeEnabled();
+  await picker.getByRole("button", { name: "札幌近郊", exact: true }).click();
+  await expect(page.getByText("投稿情報を取得できませんでした。", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "最新投稿順", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "最新投稿順", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText("最新投稿順を取得できないため、五十音順で表示しています。", { exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "スキー場一覧" }).getByLabel("現地コメント", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("まだ現地速報がありません", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "＋ 投稿する", exact: true })).toHaveCount(13);
 });

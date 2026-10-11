@@ -71,12 +71,15 @@ http
       "Access-Control-Allow-Headers",
       "authorization, apikey, content-type, x-client-info, x-supabase-api-version, accept-profile, content-profile, prefer",
     );
+    res.setHeader("Access-Control-Expose-Headers", "Content-Range");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
     res.setHeader("Content-Type", "application/json");
     if (req.method === "OPTIONS") {
       res.end();
       return;
     }
+    // Decode across chunk boundaries; large Japanese fixtures may split a UTF-8 character.
+    req.setEncoding("utf8");
     let text = "";
     for await (const chunk of req) text += chunk;
     const body = text ? JSON.parse(text) : {};
@@ -94,6 +97,7 @@ http
         failedTables = new Set();
       }
       if (body.failTables) failedTables = new Set(body.failTables);
+      if (body.posts) posts = structuredClone(body.posts);
       if (body.inactive) resorts = resorts.map((r) => ({ ...r, is_active: !body.inactive.includes(r.name) }));
       return respond({ ok: true });
     }
@@ -111,6 +115,11 @@ http
         }
         return 0;
       });
+      const count = rows.length;
+      const limit = Number(url.searchParams.get("limit") ?? 1000);
+      rows = rows.slice(0, Math.min(limit, 1000));
+      if (req.headers.prefer?.includes("count=exact"))
+        res.setHeader("Content-Range", rows.length ? `0-${rows.length - 1}/${count}` : `*/${count}`);
       const columns = url.searchParams.get("select")?.split(",");
       return respond(columns && !columns.includes("*")
         ? rows.map((row) => Object.fromEntries(columns.map((key) => [key, row[key]])))
