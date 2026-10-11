@@ -34,7 +34,6 @@ function PostForm() {
   const [snowfall, setSnowfall] = useState("ほぼ無し");
   const [roughness, setRoughness] = useState("きれい");
   const [crowd, setCrowd] = useState("空いている");
-  const [condition, setCondition] = useState("★★★★★");
   const [comment, setComment] = useState("");
 
   async function handleSubmit() {
@@ -52,7 +51,7 @@ function PostForm() {
           snowfall,
           roughness,
           crowd,
-          condition,
+          condition: null,
           comment,
         }),
       });
@@ -250,25 +249,6 @@ function PostForm() {
               <option>空いている</option>
               <option>普通</option>
               <option>混んでいる</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="condition" className="mb-2 block text-sm font-semibold">
-              今日のコンディション
-            </label>
-
-            <select
-              id="condition"
-              value={condition}
-              onChange={(e) => setCondition(e.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-900 p-4"
-            >
-              <option value="★★★★★">★★★★★ 最高</option>
-              <option value="★★★★☆">★★★★☆ 良い</option>
-              <option value="★★★☆☆">★★★☆☆ 普通</option>
-              <option value="★★☆☆☆">★★☆☆☆ 微妙</option>
-              <option value="★☆☆☆☆">★☆☆☆☆ 厳しい</option>
             </select>
           </div>
 

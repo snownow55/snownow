@@ -14,7 +14,6 @@ type SnowPost = {
   snowfall: string;
   roughness: string;
   crowd: string;
-  condition: string;
   comment: string;
   createdAt: string;
   timeAgo: string;
@@ -57,7 +56,7 @@ export default function ResortPage() {
     if (!supabase) throw new Error("Unavailable");
     const { data, error } = await supabase
       .from("snow_posts")
-      .select("id,resort,area,snow_type,snowfall,roughness,crowd,condition,comment,created_at")
+      .select("id,resort,area,snow_type,snowfall,roughness,crowd,comment,created_at")
       .eq("resort", canonicalName)
       .order("created_at", { ascending: false });
 
@@ -71,7 +70,6 @@ export default function ResortPage() {
       snowfall: post.snowfall,
       roughness: post.roughness,
       crowd: post.crowd,
-      condition: post.condition,
       comment: post.comment,
       createdAt: post.created_at,
       timeAgo: getTimeAgo(post.created_at),
@@ -160,9 +158,6 @@ export default function ResortPage() {
                     </p>
                   </div>
 
-                  <span className="text-lg">
-                    {post.condition}
-                  </span>
                 </div>
 
                 <div className="space-y-2 text-sm">

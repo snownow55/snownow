@@ -68,8 +68,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "Resort information unavailable" }, { status: 503 });
   }
   // Uses the user's JWT and publishable key; existing RLS remains in force.
-  // Preserve the existing table shape: no user_id column is assumed.
-  const { error: insertError } = await client.from("snow_posts").insert(post);
+  // The database supplies user_id; new posts never carry a star rating.
+  const { error: insertError } = await client.from("snow_posts").insert({ ...post, condition: null });
   if (insertError)
     return Response.json({ error: "Post failed" }, { status: 400 });
   return Response.json({ ok: true }, { status: 201 });

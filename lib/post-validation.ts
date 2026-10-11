@@ -19,14 +19,24 @@ const choices: Record<string, readonly string[]> = {
   ],
   roughness: ["きれい", "少し荒れている", "かなり荒れている", "ボコボコ"],
   crowd: ["空いている", "普通", "混んでいる"],
-  condition: ["★★★★★", "★★★★☆", "★★★☆☆", "★★☆☆☆", "★☆☆☆☆"],
 };
-export function validPost(value: unknown): value is Record<string, string> {
+export type PostInput = {
+  resort: string;
+  area: string;
+  snow_type: string;
+  snowfall: string;
+  roughness: string;
+  crowd: string;
+  comment: string;
+  condition?: null;
+};
+
+export function validPost(value: unknown): value is PostInput {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const post = value as Record<string, unknown>;
   if (
-    Object.keys(post).length !== 8 ||
-    Object.keys(post).some((key) => !Object.hasOwn(choices, key) && key !== "comment" && key !== "resort")
+    Object.keys(post).some((key) => !Object.hasOwn(choices, key) && key !== "comment" && key !== "resort" && key !== "condition") ||
+    (Object.hasOwn(post, "condition") && post.condition !== null)
   )
     return false;
   return (

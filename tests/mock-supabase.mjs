@@ -85,7 +85,7 @@ http
       res.statusCode = status;
       res.end(JSON.stringify(data));
     };
-    if (url.pathname === "/__stats") return respond({ inserts, lastInsert: posts.at(-1) });
+    if (url.pathname === "/__stats") return respond({ inserts, lastInsert: posts.at(-1), posts });
     if (url.pathname === "/__control" && req.method === "POST") {
       if (body.reset) {
         resorts = structuredClone(initialResorts);
@@ -111,7 +111,10 @@ http
         }
         return 0;
       });
-      return respond(rows);
+      const columns = url.searchParams.get("select")?.split(",");
+      return respond(columns && !columns.includes("*")
+        ? rows.map((row) => Object.fromEntries(columns.map((key) => [key, row[key]])))
+        : rows);
     }
     if (url.pathname === "/rest/v1/regions" && req.method === "GET") return sendRows(regions);
     if (url.pathname === "/rest/v1/resorts" && req.method === "GET") return sendRows(resorts);
@@ -170,8 +173,11 @@ http
         const kind = jwt?.split(".").length === 3
           ? JSON.parse(Buffer.from(jwt.split(".")[1], "base64url").toString()).kind : null;
         if (!activeResort || kind !== "verified") return respond({ message: "Fixture RLS rejection" }, 403);
+        const ratings = ["★★★★★", "★★★★☆", "★★★☆☆", "★★☆☆☆", "★☆☆☆☆"];
+        if (body.condition != null && !ratings.includes(body.condition))
+          return respond({ message: "Fixture condition check rejection" }, 400);
         inserts++;
-        posts.push({ ...body, id: posts.length + 1, created_at: new Date().toISOString() });
+        posts.push({ ...body, condition: body.condition ?? null, id: posts.length + 1, created_at: new Date().toISOString() });
         return respond([], 201);
       }
       return sendRows(posts);

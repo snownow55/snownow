@@ -43,7 +43,7 @@ const post = {
   snowfall: "ほぼ無し",
   roughness: "きれい",
   crowd: "空いている",
-  condition: "★★★★★",
+  condition: null,
   comment: "",
 };
 test("post validation preserves choices and rejects tampering", () => {
@@ -61,6 +61,19 @@ test("post validation preserves choices and rejects tampering", () => {
     { ...post, created_at: "2100-01-01" },
   ])
     assert.equal(validPost(invalid), false);
+});
+
+test("new posts allow an omitted or null rating, reject ratings, and still require every other field", () => {
+  const withoutRating = Object.fromEntries(Object.entries(post).filter(([key]) => key !== "condition"));
+  assert.equal(validPost(withoutRating), true);
+  assert.equal(validPost(post), true);
+  for (const condition of ["★★★★★", "★★★★☆", "", 0, false, {}, [], undefined]) {
+    assert.equal(validPost({ ...withoutRating, condition }), false);
+  }
+  for (const field of Object.keys(withoutRating)) {
+    const missingField = Object.fromEntries(Object.entries(withoutRating).filter(([key]) => key !== field));
+    assert.equal(validPost(missingField), false);
+  }
 });
 
 test("post shape accepts master names; DB membership is checked separately by the API", () => {

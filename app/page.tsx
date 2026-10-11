@@ -5,7 +5,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useResortMaster } from "@/lib/use-resort-master";
-import { regionUrl } from "@/lib/resort-master";
+import { postUrl, regionUrl } from "@/lib/resort-master";
 type SnowPost = {
   id: number;
   resort: string;
@@ -14,7 +14,6 @@ type SnowPost = {
   snowfall: string;
   roughness: string;
   crowd: string;
-  condition: string;
   comment: string;
   createdAt: string;
   timeAgo: string;
@@ -53,7 +52,7 @@ function Home() {
     if (!supabase) throw new Error("Unavailable");
     const { data, error } = await supabase
       .from("snow_posts")
-      .select("id,resort,area,snow_type,snowfall,roughness,crowd,condition,comment,created_at")
+      .select("id,resort,area,snow_type,snowfall,roughness,crowd,comment,created_at")
       .order("created_at", { ascending: false });
 
     if (error || !Array.isArray(data)) throw new Error("Post read failed");
@@ -66,7 +65,6 @@ function Home() {
       snowfall: post.snowfall,
       roughness: post.roughness,
       crowd: post.crowd,
-      condition: post.condition,
       comment: post.comment,
       createdAt: post.created_at,
       timeAgo: getTimeAgo(post.created_at),
@@ -144,14 +142,14 @@ function Home() {
               const latestPost = resortPosts[0];
 
               return (
-                <Link
+                <article
                   key={resort.name}
-                  href={`/resort/${encodeURIComponent(resort.name)}`}
+                  aria-labelledby={`resort-${resort.id}`}
                   className="block rounded-2xl border border-slate-800 bg-slate-900 p-5 transition hover:border-sky-500"
                 >
                   <div className="mb-4 flex items-start justify-between">
                     <div>
-                      <h3 className="text-xl font-bold break-words">
+                      <h3 id={`resort-${resort.id}`} className="text-xl font-bold break-words">
                         {resort.display_name}
                       </h3>
 
@@ -215,26 +213,15 @@ function Home() {
                           </span>
                         </div>
 
-                        <div className="flex justify-between">
-                          <span className="text-slate-400">
-                            総合
-                          </span>
-
-                          <span>
-                            {latestPost.condition}
-                          </span>
+                      </div>
+                      {latestPost.comment.trim() && (
+                        <div className="mt-4 rounded-xl bg-slate-950 p-3">
+                          <p className="mb-1 text-xs text-slate-400">現地コメント</p>
+                          <p aria-label="現地コメント" className="line-clamp-3 whitespace-pre-wrap break-words text-sm text-slate-200">
+                            {latestPost.comment}
+                          </p>
                         </div>
-                      </div>
-
-                      <div className="mt-4 flex items-center justify-between border-t border-slate-800 pt-3">
-                        <span className="text-xs text-slate-500">
-                          最新投稿 {resortPosts.length}件
-                        </span>
-
-                        <span className="text-sm font-semibold text-sky-400">
-                          詳細を見る →
-                        </span>
-                      </div>
+                      )}
                     </>
                   ) : (
                     <div className="rounded-xl bg-slate-950 p-4">
@@ -243,7 +230,20 @@ function Home() {
                       </p>
                     </div>
                   )}
-                </Link>
+                  <div className="mt-4 border-t border-slate-800 pt-3">
+                    {latestPost && <p className="mb-3 text-xs text-slate-500">最新投稿 {resortPosts.length}件</p>}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link href={`/resort/${encodeURIComponent(resort.name)}`}
+                        className="flex min-h-11 items-center justify-center rounded-xl border border-slate-700 px-2 py-3 text-center text-sm font-semibold text-sky-400">
+                        過去投稿を見る
+                      </Link>
+                      <Link href={postUrl(resort.name, resort.region_code, "detail")}
+                        className="flex min-h-11 items-center justify-center rounded-xl bg-sky-500 px-2 py-3 text-center text-sm font-semibold text-slate-950">
+                        ＋ 投稿する
+                      </Link>
+                    </div>
+                  </div>
+                </article>
               );
             })}
           </div>
