@@ -67,9 +67,11 @@ export async function findResort(client: MasterClient, name: string): Promise<Re
 export function regionUrl(code?: string): string {
   return code ? "/?" + new URLSearchParams({ region: code }).toString() : "/";
 }
-export function postUrl(name?: string, code?: string): string {
+export function postUrl(name?: string, code?: string, source?: "detail"): string {
   const params = new URLSearchParams();
-  if (code) params.set("region", code);
-  if (name) params.set("resort", name);
+  // Preserve explicitly empty (invalid) selections across authentication redirects.
+  if (code !== undefined) params.set("region", code);
+  if (name !== undefined) params.set("resort", name);
+  if (source) params.set("from", source);
   return "/post" + (params.size ? "?" + params.toString() : "");
 }

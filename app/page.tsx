@@ -5,7 +5,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useResortMaster } from "@/lib/use-resort-master";
-import { postUrl, regionUrl } from "@/lib/resort-master";
+import { regionUrl } from "@/lib/resort-master";
 type SnowPost = {
   id: number;
   resort: string;
@@ -176,6 +176,10 @@ function Home() {
                   {latestPost ? (
                     <>
                       <div className="space-y-2 text-sm">
+                        <div className="flex justify-between gap-3">
+                          <span className="text-slate-400">ゲレンデ内の位置</span>
+                          <span>{latestPost.area}</span>
+                        </div>
                         <div className="flex justify-between">
                           <span className="text-slate-400">
                             雪質
@@ -188,12 +192,17 @@ function Home() {
 
                         <div className="flex justify-between">
                           <span className="text-slate-400">
-                            営業開始後
+                            営業開始後の降雪
                           </span>
 
                           <span>
                             {latestPost.snowfall}
                           </span>
+                        </div>
+
+                        <div className="flex justify-between gap-3">
+                          <span className="text-slate-400">荒れ具合</span>
+                          <span>{latestPost.roughness}</span>
                         </div>
 
                         <div className="flex justify-between">
@@ -239,13 +248,6 @@ function Home() {
             })}
           </div>
         </section>
-
-        <Link
-          href={postUrl(undefined, selectedRegion?.code)}
-          className="mt-6 block w-full rounded-2xl bg-sky-500 px-4 py-4 text-center font-bold"
-        >
-          ＋ 現地のコンディションを投稿
-        </Link>
 
         <p className="mt-6 text-center text-xs text-slate-600">
           Prototype v0.4

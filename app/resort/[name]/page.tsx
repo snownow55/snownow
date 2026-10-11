@@ -175,7 +175,7 @@ export default function ResortPage() {
 
                   <div className="flex justify-between">
                     <span className="text-slate-400">
-                      営業開始後
+                      営業開始後の降雪
                     </span>
                     <span>{post.snowfall}</span>
                   </div>
@@ -208,7 +208,7 @@ export default function ResortPage() {
         )}
 
         {resort.is_active ? <Link
-          href={postUrl(resort.name, resort.region_code)}
+          href={postUrl(resort.name, resort.region_code, "detail")}
       
           className="mt-6 block w-full rounded-2xl bg-sky-500 px-4 py-4 text-center font-bold"
         >

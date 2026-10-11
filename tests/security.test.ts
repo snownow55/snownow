@@ -124,6 +124,23 @@ test("master URLs retain region and internal names through safe authentication r
   assert.equal(regionUrl("doto"), "/?region=doto");
 });
 
+test("detail post URLs preserve their UI mode and internal name through login", () => {
+  for (const name of ["オーンズ", "キロロ", "Fu'sスノーエリア", "国設阿寒湖畔スキー場 ウタラ"]) {
+    const path = postUrl(name, "sapporo", "detail");
+    const url = new URL(safeNext(path), "https://snow.invalid");
+    assert.equal(url.pathname, "/post");
+    assert.equal(url.searchParams.get("resort"), name);
+    assert.equal(url.searchParams.get("region"), "sapporo");
+    assert.equal(url.searchParams.get("from"), "detail");
+    assert.equal(new URL(postUrl(name, "sapporo"), url.origin).searchParams.has("from"), false);
+  }
+  assert.equal(postUrl(), "/post");
+  const emptySelection = new URL(safeNext(postUrl("", "", "detail")), "https://snow.invalid");
+  assert.equal(emptySelection.searchParams.get("resort"), "");
+  assert.equal(emptySelection.searchParams.get("region"), "");
+  assert.equal(emptySelection.searchParams.get("from"), "detail");
+});
+
 test("canonical site origin overrides request host and rejects unsafe configuration", () => {
   const old = process.env.NEXT_PUBLIC_SITE_URL;
   try {

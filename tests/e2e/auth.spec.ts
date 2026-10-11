@@ -82,9 +82,10 @@ test("login preserves selected resort and verified user can submit; logout remov
     page.getByRole("heading", { name: "コンディションを投稿" }),
   ).toBeVisible();
   await expect(page.getByLabel("スキー場", { exact: true })).toHaveValue("キロロ");
-  await expect(page.getByText("営業開始後の積雪", { exact: true })).toBeVisible();
+  await expect(page.getByText("営業開始後の降雪", { exact: true })).toBeVisible();
   await expect(page.getByText("営業時間後の積雪", { exact: true })).toHaveCount(0);
-  expect(await page.getByLabel("営業開始後の積雪", { exact: true }).locator("option").evaluateAll(
+  await expect(page.getByText("営業開始後の積雪", { exact: true })).toHaveCount(0);
+  expect(await page.getByLabel("営業開始後の降雪", { exact: true }).locator("option").evaluateAll(
     (options) => options.map((option) => (option as HTMLOptionElement).value),
   )).toEqual(["ほぼ無し", "うっすら積もった", "そこそこ積もった", "かなり積もった", "分からない"]);
   const postRequest = page.waitForRequest((request) =>
