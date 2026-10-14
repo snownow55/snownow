@@ -1,4 +1,5 @@
 "use client";
+import { Brand, PageShell } from "@/components/ui";
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -132,18 +133,19 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const resetUnavailable =
     mode === "reset" && (loading || !user || user.is_anonymous);
   const input =
-    "mt-2 min-h-12 w-full rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 text-base focus:outline-2 focus:outline-sky-400";
+    "ui-input mt-2";
   return (
-    <main className="min-h-screen bg-slate-950 px-5 py-8 text-white">
-      <div className="mx-auto max-w-md">
+    <PageShell className="px-5 py-8">
+      <div className="ui-card mx-auto max-w-md p-5 sm:p-7">
+        <div className="mb-3"><Brand /></div>
         <h1 className="mb-4 text-2xl font-bold">{titles[mode]}</h1>
         {!supabase && (
-          <p role="alert" className="mb-5 text-amber-300">
+          <p role="alert" className="mb-5 ui-error">
             認証サービスの設定が未完了です。現在は登録・ログインできません。
           </p>
         )}
         {params.get("error") === "callback" && (
-          <p role="alert" className="mb-5 text-amber-300">
+          <p role="alert" className="mb-5 ui-error">
             認証リンクが無効または期限切れです。確認メールは新規登録画面から再送できます。パスワード再設定は下のリンクからやり直してください。
           </p>
         )}
@@ -193,7 +195,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
           )}
           {(mode === "signup" || mode === "reset") && (
             <>
-              <p className="text-sm text-slate-300">
+              <p className="text-sm text-slate-600">
                 {MIN_PASSWORD_LENGTH}文字以上で入力してください。
               </p>
               <label className="block">
@@ -210,18 +212,18 @@ export function AuthForm({ mode }: { mode: Mode }) {
             </>
           )}
           {error && (
-            <p role="alert" className="text-amber-300">
+            <p role="alert" className="ui-error">
               {error}
             </p>
           )}
           {message && (
-            <p role="status" className="text-sky-300">
+            <p role="status" className="text-brand">
               {message}
             </p>
           )}
           <button
             disabled={!supabase || busy || resetUnavailable}
-            className="min-h-12 w-full rounded-xl bg-sky-500 px-4 py-3 font-bold text-slate-950 disabled:opacity-50"
+            className="ui-primary min-h-12 w-full"
           >
             {busy
               ? "処理中…"
@@ -236,13 +238,13 @@ export function AuthForm({ mode }: { mode: Mode }) {
               type="button"
               disabled={!supabase || busy}
               onClick={resend}
-              className="min-h-12 w-full rounded-xl border border-slate-600 p-3 disabled:opacity-50"
+              className="ui-secondary min-h-12 w-full"
             >
               確認メールを再送
             </button>
           )}
         </form>
-        <div className="mt-6 flex flex-col gap-4 text-sky-400">
+        <div className="mt-6 flex flex-col gap-4 text-brand">
           <Link href={`/login?next=${encodeURIComponent(next)}`}>ログイン</Link>
           <Link href={`/signup?next=${encodeURIComponent(next)}`}>
             新規登録
@@ -251,6 +253,6 @@ export function AuthForm({ mode }: { mode: Mode }) {
           <Link href="/">スキー場一覧へ戻る</Link>
         </div>
       </div>
-    </main>
+    </PageShell>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import { Brand, PageShell } from "@/components/ui";
 
 import { Suspense, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -79,64 +80,62 @@ function PostForm() {
     );
   if (!canPost(user))
     return (
-      <main className="min-h-screen bg-slate-950 px-5 py-8 text-white">
+      <PageShell className="px-5 py-8">
         <div className="mx-auto max-w-md">
           <h1 className="text-2xl font-bold">投稿にはログインが必要です</h1>
           <p className="my-5">
             メール認証を完了したアカウントをご利用ください。
           </p>
           <Link
-            className="block rounded-xl bg-sky-500 p-4 text-center font-bold"
+            className="ui-primary w-full"
             href={"/login?next=" + encodeURIComponent(loginNext)}
           >
             ログイン
           </Link>
           <Link
-            className="mt-4 block p-3 text-sky-400"
+            className="mt-4 block p-3 text-brand"
             href={"/signup?next=" + encodeURIComponent(loginNext)}
           >
             新規登録
           </Link>
-          <Link className="mt-4 block p-3 text-sky-400" href="/">
+          <Link className="mt-4 block p-3 text-brand" href="/">
             スキー場一覧へ戻る
           </Link>
         </div>
-      </main>
+      </PageShell>
     );
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
+    <PageShell>
       <div className="mx-auto max-w-md px-5 py-8">
         <button
           onClick={() => router.push(regionUrl(region?.code))}
-          className="mb-6 min-h-11 text-sm text-sky-400"
+          className="mb-6 min-h-11 text-sm text-brand"
         >
           ← 戻る
         </button>
 
         <header className="mb-8">
-          <p className="mb-2 text-sm font-semibold tracking-[0.3em] text-sky-400">
-            SNOW NOW
-          </p>
+          <div className="mb-3"><Brand /></div>
 
           <h1 className="text-3xl font-bold break-words">
             {fromDetail && selectedResort ? `${selectedResort.display_name}のコンディションを投稿` : "コンディションを投稿"}
           </h1>
 
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm text-slate-600">
             今いるスキー場の状況を教えてください
           </p>
         </header>
 
-        <div className="space-y-6">
+        <div className="ui-card space-y-6 p-4 sm:p-5">
           {master.loading && <p role="status">エリア・スキー場を読み込んでいます…</p>}
-          {master.error && <div role="alert" className="text-amber-300">
+          {master.error && <div role="alert" className="ui-error">
             <p>{master.error}</p>
-            <button onClick={master.retry} className="min-h-11 py-3 text-sky-400">再読み込み</button>
+            <button onClick={master.retry} className="min-h-11 py-3 text-brand">再読み込み</button>
           </div>}
-          {selectionError && <div role="alert" className="text-amber-300">
+          {selectionError && <div role="alert" className="ui-error">
             <p>{selectionError}</p>
-            {fromDetail && <Link href="/post" className="block min-h-11 py-3 text-sky-400">投稿先を選び直す</Link>}
+            {fromDetail && <Link href="/post" className="block min-h-11 py-3 text-brand">投稿先を選び直す</Link>}
           </div>}
           {!fromDetail && (
             <>
@@ -144,7 +143,7 @@ function PostForm() {
                 <label htmlFor="region" className="mb-2 block text-sm font-semibold">エリア</label>
                 <select id="region" value={region?.code ?? ""} disabled={master.loading || !!master.error || submitting || selectionPending}
                   onChange={(e) => startSelectionTransition(() => router.replace(postUrl(undefined, e.target.value), { scroll: false }))}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-4">
+                  className="ui-input">
                   <option value="" disabled>エリアを選択してください</option>
                   {master.data?.regions.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
                 </select>
@@ -156,7 +155,7 @@ function PostForm() {
                   id="resort" value={resort}
                   disabled={master.loading || !!master.error || !region || submitting || selectionPending || !resorts.length}
                   onChange={(e) => startSelectionTransition(() => router.replace(postUrl(e.target.value, region?.code), { scroll: false }))}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900 p-4"
+                  className="ui-input"
                 >
                   <option value="" disabled>スキー場を選択してください</option>
                   {resorts.map((item) => <option key={item.id} value={item.name}>{item.display_name}</option>)}
@@ -172,7 +171,7 @@ function PostForm() {
             <select
               id="slope-area" value={area}
               onChange={(e) => setArea(e.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-900 p-4"
+              className="ui-input"
             >
               <option>山頂・上部</option>
               <option>中腹</option>
@@ -188,7 +187,7 @@ function PostForm() {
               id="snow-type"
               value={snowType}
               onChange={(e) => setSnowType(e.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-900 p-4"
+              className="ui-input"
             >
               <option>パウダー</option>
               <option>圧雪</option>
@@ -209,7 +208,7 @@ function PostForm() {
             <select
               id="snowfall" value={snowfall}
               onChange={(e) => setSnowfall(e.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-900 p-4"
+              className="ui-input"
             >
               <option>ほぼ無し</option>
               <option>うっすら積もった</option>
@@ -228,7 +227,7 @@ function PostForm() {
               id="roughness"
               value={roughness}
               onChange={(e) => setRoughness(e.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-900 p-4"
+              className="ui-input"
             >
               <option>きれい</option>
               <option>少し荒れている</option>
@@ -244,7 +243,7 @@ function PostForm() {
               id="crowd"
               value={crowd}
               onChange={(e) => setCrowd(e.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-900 p-4"
+              className="ui-input"
             >
               <option>空いている</option>
               <option>普通</option>
@@ -264,29 +263,27 @@ function PostForm() {
               rows={4}
               maxLength={1000}
               placeholder="例：上部はまだパウダー残ってます！"
-              className="w-full resize-none rounded-xl border border-slate-700 bg-slate-900 p-4"
+              className="ui-input resize-none"
             />
           </div>
 
           {submitError && (
-            <p role="alert" className="text-amber-300">
+            <p role="alert" className="ui-error">
               {submitError}
             </p>
           )}
           <button
             disabled={submitting || selectionPending || master.loading || !!master.error || !selectedResort || !!selectionError}
             onClick={handleSubmit}
-            className="w-full rounded-2xl bg-sky-500 px-4 py-4 font-bold"
+            className="ui-primary w-full"
           >
             {submitting ? "投稿中…" : "投稿する"}
           </button>
         </div>
 
-        <p className="mt-6 text-center text-xs text-slate-600">
-          Prototype v0.3
-        </p>
+        <p className="mt-6 text-center text-xs text-slate-600">ユーザーの現地投稿として共有されます。</p>
       </div>
-    </main>
+    </PageShell>
   );
 }
 export default function PostPage() {

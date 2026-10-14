@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --background: #f7fbfc;
+  --foreground: #183448;
 }
 
 @theme inline {
@@ -10,17 +11,34 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-brand: #087d89;
+  --color-brand-soft: #edf9fa;
+  --color-ink: #183448;
+  --color-accent: #b94713;
+  --color-accent-soft: #fff3e8;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer components {
+  .ui-page { @apply min-h-screen bg-background text-ink; }
+  .ui-page h1, .ui-page h2, .ui-page h3 { @apply text-brand; }
+  .ui-brand { @apply text-sm font-extrabold tracking-[0.16em] text-brand; }
+  .ui-card { @apply rounded-2xl border border-brand/15 bg-white shadow-[0_2px_12px_rgba(24,52,72,0.03)]; }
+  .ui-input { @apply min-h-12 w-full rounded-xl border border-brand/25 bg-white px-4 py-3 text-base text-ink placeholder:text-slate-500; }
+  .ui-primary { @apply inline-flex min-h-11 items-center justify-center rounded-xl bg-accent px-4 py-3 text-center font-semibold text-white transition hover:bg-orange-800 disabled:cursor-not-allowed disabled:opacity-50; }
+  .ui-secondary { @apply inline-flex min-h-11 items-center justify-center rounded-xl border border-brand/25 bg-white px-3 py-2 text-center font-semibold text-brand transition hover:bg-brand-soft disabled:cursor-not-allowed disabled:opacity-50; }
+  .ui-tab { @apply min-h-11 rounded-xl border px-2 py-2 text-xs font-semibold transition disabled:opacity-50; }
+  .ui-tab-active { @apply border-brand bg-brand text-white; }
+  .ui-tab-idle { @apply border-brand/15 bg-white text-ink hover:bg-brand-soft; }
+  .ui-error { @apply text-orange-900; }
+}
+
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 3px;
 }

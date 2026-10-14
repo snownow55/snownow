@@ -1,4 +1,5 @@
 "use client";
+import { Brand } from "./ui";
 import { createContext, useContext, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
@@ -59,12 +60,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={{ user, loading }}>
       <nav
         aria-label="アカウント"
-        className="border-b border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white"
+        className="border-b border-brand/15 bg-white px-4 py-2 text-sm text-ink"
       >
-        <div className="mx-auto flex max-w-md flex-wrap items-center justify-between gap-3">
-          <Link href="/" className="font-bold text-sky-400">
-            SNOW NOW
-          </Link>
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
+          <Link href="/" aria-label="SNOW VIKING トップページ"><Brand /></Link>
           {loading ? (
             <span role="status">確認中…</span>
           ) : user ? (
@@ -73,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 {user.email_confirmed_at ? "ログイン中" : "メール確認待ち"}：
                 {user.email}
               </span>
-              <button onClick={logout} className="min-h-11 text-sky-400">
+              <button onClick={logout} className="min-h-11 text-brand">
                 ログアウト
               </button>
             </div>
@@ -82,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               <Link className="py-3" href="/login">
                 ログイン
               </Link>
-              <Link className="py-3 text-sky-400" href="/signup">
+              <Link className="ui-secondary text-xs" href="/signup">
                 新規登録
               </Link>
             </div>
@@ -93,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {!supabase && (
         <p
           role="status"
-          className="bg-slate-900 px-5 py-3 text-center text-sm text-amber-300"
+          className="bg-accent-soft px-5 py-3 text-center text-sm text-orange-900"
         >
           接続設定が未完了のため、投稿データの取得と認証機能は利用できません。
         </p>

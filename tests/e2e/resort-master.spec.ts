@@ -527,6 +527,7 @@ test("a partial resort post read failure prevents misleading latest rankings and
   failKiroro = true;
   const picker = page.getByRole("region", { name: "エリア選択" });
   await picker.getByRole("button", { name: "空知", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "空知のスキー場", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "最新投稿順", exact: true })).toBeEnabled();
   await picker.getByRole("button", { name: "札幌近郊", exact: true }).click();
   await expect(page.getByText("投稿情報を取得できませんでした。", { exact: true })).toBeVisible();
@@ -544,7 +545,7 @@ for (const width of [320, 390, 1280]) {
     await page.goto("/");
     const list = page.getByRole("region", { name: "スキー場一覧" });
     await expect(list.getByRole("article")).toHaveCount(13);
-    await expect(page.getByText("SNOW VIKING", { exact: true })).toBeVisible();
+    await expect(page.getByRole("main").getByText("SNOW VIKING", { exact: true })).toBeVisible();
     const owns = list.getByRole("article", { name: "スノークルーズオーンズ", exact: true });
     await expect(owns.locator("time")).toBeVisible();
     await expect(owns.locator("time")).toHaveAttribute("datetime", "2026-10-09T00:00:00Z");
@@ -554,10 +555,10 @@ for (const width of [320, 390, 1280]) {
     await expect(owns.locator("details")).not.toHaveAttribute("open");
     const empty = list.getByRole("article", { name: "さっぽろばんけい", exact: true });
     await expect(empty.getByText("現地投稿なし", { exact: true })).toBeVisible();
-    await expect(empty.locator("dd")).toHaveText(["―", "―", "―"]);
+    await expect(empty.locator("dd")).toHaveText(["―", "―", "―", "―"]);
     const metrics = await owns.evaluate((element) => ({ height: element.getBoundingClientRect().height,
       background: getComputedStyle(element).backgroundColor }));
-    expect(metrics.height).toBeLessThan(300);
+    expect(metrics.height).toBeLessThan(340);
     expect(metrics.background).toBe("rgb(255, 255, 255)");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     if (width === 1280) {

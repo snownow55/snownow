@@ -1,4 +1,5 @@
 "use client";
+import { Brand, PageShell } from "@/components/ui";
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -85,38 +86,36 @@ export default function ResortPage() {
 }, [canonicalName]);
 
   if (master.loading) return <p role="status" className="p-6">スキー場を読み込んでいます…</p>;
-  if (master.error) return <main className="p-6">
-    <p role="alert" className="text-amber-300">{master.error}</p>
-    <button className="min-h-11 py-3 text-sky-400" onClick={master.retry}>再読み込み</button>
-    <Link className="block py-3 text-sky-400" href="/">スキー場一覧へ戻る</Link>
-  </main>;
-  if (!resort) return <main className="p-6">
+  if (master.error) return <PageShell className="p-6">
+    <p role="alert" className="ui-error">{master.error}</p>
+    <button className="min-h-11 py-3 text-brand" onClick={master.retry}>再読み込み</button>
+    <Link className="block py-3 text-brand" href="/">スキー場一覧へ戻る</Link>
+  </PageShell>;
+  if (!resort) return <PageShell className="p-6">
     <h1 className="text-xl font-bold">指定されたスキー場が見つかりません</h1>
-    <Link className="block py-3 text-sky-400" href="/">スキー場一覧へ戻る</Link>
-  </main>;
+    <Link className="block py-3 text-brand" href="/">スキー場一覧へ戻る</Link>
+  </PageShell>;
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
+    <PageShell>
       <div className="mx-auto max-w-md px-5 py-8">
 
         <Link
           href={regionUrl(resort.region_code)}
-          className="text-sm font-semibold text-sky-400"
+          className="text-sm font-semibold text-brand"
         >
           ← スキー場一覧
         </Link>
 
         <header className="mb-8 mt-6">
-          <p className="mb-2 text-sm font-semibold tracking-[0.3em] text-sky-400">
-            SNOW NOW
-          </p>
+          <div className="mb-3"><Brand /></div>
 
           <h1 className="text-3xl font-bold break-words">
             {resort.display_name}
           </h1>
 
-          <p className="mt-2 text-sm text-slate-400">
-            {region?.name}・現地からのリアルタイム速報
+          <p className="mt-2 text-sm text-slate-600">
+            {region?.name}・ユーザーの現地投稿
           </p>
         </header>
 
@@ -130,13 +129,13 @@ export default function ResortPage() {
           </span>
         </div>
 
-        {postsLoading ? <p role="status">投稿情報を読み込んでいます…</p> : postsError ? <p role="alert" className="text-amber-300">{postsError}</p> : posts.length === 0 ? (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-center">
+        {postsLoading ? <p role="status">投稿情報を読み込んでいます…</p> : postsError ? <p role="alert" className="ui-error">{postsError}</p> : posts.length === 0 ? (
+          <div className="ui-card p-6 text-center">
             <p className="font-semibold">
               まだ投稿がありません
             </p>
 
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-slate-600">
               現地から最初の速報を投稿しよう
             </p>
           </div>
@@ -145,7 +144,7 @@ export default function ResortPage() {
             {posts.map((post) => (
               <article
                 key={post.id}
-                className="rounded-2xl border border-slate-800 bg-slate-900 p-5"
+                className="ui-card p-5"
               >
                 <div className="mb-4 flex items-start justify-between">
                   <div>
@@ -162,28 +161,28 @@ export default function ResortPage() {
 
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-slate-400">
+                    <span className="text-slate-600">
                       雪質
                     </span>
                     <span>{post.snowType}</span>
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-slate-400">
+                    <span className="text-slate-600">
                       営業開始後の降雪
                     </span>
                     <span>{post.snowfall}</span>
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-slate-400">
+                    <span className="text-slate-600">
                       荒れ具合
                     </span>
                     <span>{post.roughness}</span>
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-slate-400">
+                    <span className="text-slate-600">
                       混雑
                     </span>
                     <span>{post.crowd}</span>
@@ -191,8 +190,8 @@ export default function ResortPage() {
                 </div>
 
                 {post.comment && (
-                  <div className="mt-4 rounded-xl bg-slate-950 p-3">
-                    <p className="text-sm text-slate-300">
+                  <div className="mt-4 rounded-xl bg-brand-soft p-3">
+                    <p className="text-sm text-slate-600">
                       「{post.comment}」
                     </p>
                   </div>
@@ -205,11 +204,11 @@ export default function ResortPage() {
         {resort.is_active ? <Link
           href={postUrl(resort.name, resort.region_code, "detail")}
       
-          className="mt-6 block w-full rounded-2xl bg-sky-500 px-4 py-4 text-center font-bold"
+          className="ui-primary mt-6 w-full"
         >
           ＋ このスキー場の情報を投稿
-        </Link> : <p role="status" className="mt-6 text-amber-300">現在はこのスキー場への投稿を受け付けていません。</p>}
+        </Link> : <p role="status" className="mt-6 ui-error">現在はこのスキー場への投稿を受け付けていません。</p>}
       </div>
-    </main>
+    </PageShell>
   );
 }

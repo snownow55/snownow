@@ -5,8 +5,8 @@ import "./globals.css";
 import { AuthProvider } from "@/components/auth-provider";
 
 export const metadata: Metadata = {
-  title: "SNOW NOW",
-  description: "北海道のリアルタイム雪山コンディション",
+  title: "SNOW VIKING",
+  description: "滑る前に、ゲレンデの今を。北海道59スキー場のユーザー現地投稿。",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
