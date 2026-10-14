@@ -1,3 +1,4 @@
+import { selectRegion } from "./region-picker";
 import { test, expect, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { KANA_ORDER } from "../resort-order.fixture";
@@ -57,10 +58,12 @@ test.afterEach(async ({ request }) => {
 test("all nine regions show their 59 resorts in kana order on mobile", async ({ page }) => {
   await page.goto("/");
   const picker = page.getByRole("region", { name: "エリア選択" });
-  await expect(picker.getByRole("button")).toHaveCount(9);
+  await expect(picker.getByRole("combobox")).toBeVisible();
+  await expect(picker.locator("option")).toHaveCount(9);
+  await expect(picker.getByRole("button")).toHaveCount(0);
   let total = 0;
   for (const [code, label, count] of areas) {
-    await picker.getByRole("button", { name: label, exact: true }).click();
+    await selectRegion(page, label);
     await expect(page).toHaveURL(new RegExp(`region=${code}$`));
     const list = page.getByRole("region", { name: "スキー場一覧" });
     const names = KANA_ORDER[code].map((name) => manifest.find((row) => row.name === name)!);
@@ -85,7 +88,7 @@ test("all nine regions show their 59 resorts in kana order on mobile", async ({ 
   }
   expect(total).toBe(59);
   await page.reload();
-  await expect(picker.getByRole("button", { name: "道東", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(picker.getByRole("combobox")).toHaveValue("doto");
 });
 
 test("official placeholders retain independent detail and fixed posting links", async ({ page }) => {
@@ -106,7 +109,7 @@ test("official placeholders retain independent detail and fixed posting links", 
 
 test("region to detail to fixed form submits the selected resort with a null rating", async ({ page }) => {
   await login(page, "/");
-  await page.getByRole("region", { name: "エリア選択" }).getByRole("button", { name: "旭川・富良野", exact: true }).click();
+  await selectRegion(page, "旭川・富良野");
   await page.getByRole("region", { name: "スキー場一覧" }).getByRole("article", { name: "カムイスキーリンクス", exact: true }).getByRole("link", { name: "詳細を見る", exact: true }).click();
   await expect(page.getByText("まだ投稿がありません", { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "このスキー場の情報を投稿", exact: false }).click();
@@ -377,7 +380,7 @@ for (const [name, displayName, region, label] of [
   test(`top posting link for ${name} survives login and saves null without changing old ratings`, async ({ page, request }) => {
     const before = await (await request.get(fixture + "/__stats")).json();
     await page.goto("/");
-    await page.getByRole("region", { name: "エリア選択" }).getByRole("button", { name: label, exact: true }).click();
+    await selectRegion(page, label);
     const card = page.getByRole("article", { name: displayName, exact: true });
     await expect(card.getByRole("link", { name: "詳細を見る", exact: true })).toBeVisible();
     await card.getByRole("link", { name: "投稿する", exact: true }).click();
@@ -427,7 +430,6 @@ test("latest order survives region changes and preserves per-resort cards beyond
   const latest = page.getByRole("button", { name: "最新投稿順", exact: true });
   const kana = page.getByRole("button", { name: "五十音順", exact: true });
   const list = page.getByRole("region", { name: "スキー場一覧" });
-  const picker = page.getByRole("region", { name: "エリア選択" });
   await expect(kana).toHaveAttribute("aria-pressed", "true");
   await expect(latest).toBeEnabled();
   const headings = (names: readonly string[]) => names.map((name) => manifest.find((r) => r.name === name)!.display_name);
@@ -442,13 +444,13 @@ test("latest order survives region changes and preserves per-resort cards beyond
   const kiroro = list.getByRole("article", { name: "キロロ", exact: true });
   await expect(kiroro.getByLabel("現地コメント", { exact: true })).toHaveCount(0);
   expect(new URL((await kiroro.getByRole("link", { name: "投稿する", exact: true }).getAttribute("href"))!, page.url()).searchParams.get("resort")).toBe("キロロ");
-  await picker.getByRole("button", { name: "空知", exact: true }).click();
+  await selectRegion(page, "空知");
   await expect(latest).toHaveAttribute("aria-pressed", "true");
   await expect(latest).toBeEnabled();
   await expect(list.locator("h3")).toHaveText(headings(KANA_ORDER.sorachi));
   await expect(list.getByText("未取得", { exact: true })).toHaveCount(18);
-  await picker.getByRole("button", { name: "道東", exact: true }).click();
-  await picker.getByRole("button", { name: "札幌近郊", exact: true }).click();
+  await selectRegion(page, "道東");
+  await selectRegion(page, "札幌近郊");
   await expect(latest).toHaveAttribute("aria-pressed", "true");
   await expect(list.locator("h3")).toHaveText(headings(expected));
   await kana.click();
@@ -486,11 +488,10 @@ test("a partial resort post read failure prevents misleading latest rankings and
   await page.goto("/");
   await page.getByRole("button", { name: "最新投稿順", exact: true }).click();
   failKiroro = true;
-  const picker = page.getByRole("region", { name: "エリア選択" });
-  await picker.getByRole("button", { name: "空知", exact: true }).click();
+  await selectRegion(page, "空知");
   await expect(page.getByRole("heading", { name: "空知のスキー場", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "最新投稿順", exact: true })).toBeEnabled();
-  await picker.getByRole("button", { name: "札幌近郊", exact: true }).click();
+  await selectRegion(page, "札幌近郊");
   await expect(page.getByText("投稿情報を取得できませんでした。", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "最新投稿順", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "最新投稿順", exact: true })).toHaveAttribute("aria-pressed", "true");

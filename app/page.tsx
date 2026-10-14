@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Brand, PageShell } from "@/components/ui";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -58,18 +59,15 @@ function Home() {
 
   return (
     <PageShell>
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
-        <header className="mb-6 sm:mb-8">
-          <div className="mb-4"><Brand placeholder /></div>
-          <h1 aria-label="滑る前に、ゲレンデの今を。" className="text-2xl font-bold leading-snug tracking-tight sm:text-3xl"><span className="inline-block">滑る前に、</span><span className="inline-block">ゲレンデの今を。</span></h1>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600">朝の公式情報と、ユーザーが伝えるゲレンデの今。</p>
-          {master.data && <p className="mt-3 text-xs font-medium text-brand">{master.data.regions.length}エリア<span aria-hidden="true"> / </span>{master.data.resorts.length}スキー場</p>}
+      <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-6">
+        <header className="mb-3">
+          <h1 aria-label="SNOW VIKING"><Brand placeholder /></h1>
         </header>
 
         <div role="tablist" aria-label="情報の種類" className="mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-brand/15 bg-white p-2">
           {([["morning", "朝のコンディション", "無料・公式情報"], ["live", "ゲレンデの今", "ユーザー現地投稿"]] as const).map(([value, label, caption]) => (
             <button key={value} id={`tab-${value}`} role="tab" aria-selected={tab === value}
-              aria-controls={`panel-${value}`} tabIndex={tab === value ? 0 : -1}
+              aria-controls="information-panel" tabIndex={tab === value ? 0 : -1}
               onClick={() => setTab(value)}
               onKeyDown={(event) => {
                 if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
@@ -78,19 +76,17 @@ function Home() {
                 setTab(next);
                 document.getElementById(`tab-${next}`)?.focus();
               }}
-              className={`min-h-16 rounded-xl px-2 py-3 text-xs font-bold sm:text-sm ${tab === value ? "bg-brand text-white shadow-sm" : "text-brand hover:bg-brand-soft"}`}>
+              className={`min-h-14 rounded-xl px-2 py-2 text-xs font-bold sm:text-sm ${tab === value ? "bg-brand text-white shadow-sm" : "text-brand hover:bg-brand-soft"}`}>
               <span className="block">{label}</span><span className="mt-1 block text-[10px] font-normal">{caption}</span>
             </button>
           ))}
         </div>
-        <div id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`} tabIndex={0}>
-          {tab === "morning" ? <div className="mb-5 rounded-xl bg-brand-soft p-4 text-sm leading-relaxed">
-            <h2 className="font-bold">朝の公式発表を、ひと目で。</h2>
-            <p className="mt-1 text-xs text-slate-600">公式の新雪量・積雪量は誰でも無料で閲覧できる予定です。現在は取得準備中のため、すべて「未取得」と表示しています。</p>
-          </div> : <div className="mb-5 rounded-xl border border-orange-200 bg-accent-soft p-4 text-sm leading-relaxed">
-            <h2 className="font-bold">現地の声で、今日の一本を。</h2>
-            <p className="mt-1 text-xs text-slate-600">閲覧サービスのUIプレビューです。ロック部分は固定の見本で、実投稿は含みません。チケット・月額会員の機能は準備中です。</p>
-          </div>}
+        <div id="information-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} tabIndex={0}>
+          {tab === "morning" ? <p className="mb-3 text-xs leading-relaxed text-slate-600">公式情報は無料。新雪量・積雪量は取得準備中です。</p> : <aside aria-label="現地情報の閲覧案内" className="mb-3 rounded-xl border border-orange-200 bg-accent-soft px-3 py-2">
+            <p className="text-xs leading-relaxed">投稿でチケットを獲得、または月額500円で見放題 <span className="text-slate-500">（提供予定）</span></p>
+            <Link href="/access" className="inline-flex min-h-11 items-center text-xs font-bold text-brand underline underline-offset-4">閲覧方法を見る</Link>
+            <p className="text-[10px] leading-relaxed text-slate-600">ロックは固定の見本です。閲覧制御は未実装で、既存の詳細ページ・APIは公開されたままです。</p>
+          </aside>}
 
           {master.loading && <p role="status" className="mb-6 text-sm text-slate-600">エリア・スキー場を読み込んでいます…</p>}
           {master.error && (
@@ -100,9 +96,17 @@ function Home() {
             </div>
           )}
           {master.data && (
-            <section aria-label="エリア選択" className="mb-6 rounded-2xl border border-brand/15 bg-white p-3 sm:p-4">
-              <h2 className="mb-3 text-xs font-semibold text-slate-600">エリアを選ぶ</h2>
-              <div className="grid grid-cols-3 gap-2 lg:grid-cols-9">
+            <section aria-label="エリア選択" className="mb-3 rounded-2xl border border-brand/15 bg-white p-2 md:p-4">
+              <div className="md:hidden">
+                <label htmlFor="home-region" className="sr-only">地域を選択</label>
+                <select id="home-region" className="ui-input text-sm font-semibold text-brand" value={selectedRegion?.code ?? ""}
+                  onChange={(event) => router.replace(regionUrl(event.target.value), { scroll: false })}>
+                  {!selectedRegion && <option value="" disabled>地域を選択してください</option>}
+                  {master.data.regions.map((region) => <option key={region.code} value={region.code}>{region.name}</option>)}
+                </select>
+              </div>
+              <h2 className="mb-3 hidden text-xs font-semibold text-slate-600 md:block">エリアを選ぶ</h2>
+              <div className="hidden grid-cols-3 gap-2 md:grid lg:grid-cols-9">
                 {master.data.regions.map((region) => (
                   <button key={region.code} aria-label={region.name} aria-pressed={region.code === selectedRegion?.code}
                     onClick={() => router.replace(regionUrl(region.code), { scroll: false })}
@@ -114,7 +118,7 @@ function Home() {
               {!selectedRegion && <p role="alert" className="mt-3 text-sm text-amber-900">指定されたエリアが見つかりません。エリアを選び直してください。</p>}
             </section>
           )}
-          {master.data && selectedRegion && <div className="mb-5">
+          {master.data && selectedRegion && <div className="mb-3">
             <label htmlFor="resort-search" className="mb-2 block text-xs font-semibold text-brand">スキー場を検索 <span className="font-normal text-slate-600">（選択中のエリア内）</span></label>
             <div className="flex items-center gap-2">
               <div className="relative min-w-0 flex-1">
@@ -125,7 +129,7 @@ function Home() {
             </div>
           </div>}
           <section aria-label="スキー場一覧">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-bold tracking-tight">{selectedRegion ? `${selectedRegion.name}のスキー場` : "スキー場"}</h2>
                 {selectedRegion && <p className="mt-1 text-xs text-slate-500">{visibleResorts.length} / {resorts.length}スキー場 · {tab === "morning" ? "公式情報（取得準備中）" : "ユーザー現地投稿（閲覧準備中）"}</p>}
@@ -145,7 +149,7 @@ function Home() {
                 </fieldset>
               )}
             </div>
-            <p className="mb-3 text-[11px] text-slate-500">最新投稿順はユーザー投稿の日時を基準にします。公式情報の発表順ではありません。</p>
+            <p className="mb-2 text-[10px] text-slate-500">最新投稿順：ユーザー投稿日時順（公式発表順ではありません）</p>
             {sortOrder === "latest" && postsLoading && <p role="status" className="mb-3 text-xs text-slate-600">最新投稿順を読み込んでいます…</p>}
             {sortOrder === "latest" && postsError && <p className="mb-3 text-xs text-amber-900">最新投稿順を取得できないため、五十音順で表示しています。</p>}
             {postsError && <p role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{postsError}</p>}
@@ -155,11 +159,12 @@ function Home() {
             <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {visibleResorts.map((resort) => tab === "morning"
                 ? <MorningResortCard key={resort.name} resort={resort} />
-                : <LockedResortCard key={resort.name} resort={resort} />)}
+                : <LockedResortCard key={resort.name} resort={resort} latest={postsLoading ? { state: "loading" }
+                  : postsError ? { state: "error" } : { state: "ready", createdAt: latestDates.get(resort.name) ?? null }} />)}
             </div>
           </section>
         </div>
-        <p className="mt-8 text-center text-[11px] leading-relaxed text-slate-500">公式発表とユーザー現地投稿は別の情報です。閲覧制限は未実装で、既存の投稿詳細ページは引き続き公開されています。</p>
+        <p className="mt-8 text-center text-[11px] leading-relaxed text-slate-500">公式発表とユーザー現地投稿は別の情報です。閲覧制限は未実装で、既存の投稿詳細ページ・APIは引き続き公開されています。</p>
       </div>
     </PageShell>
   );

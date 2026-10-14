@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatPostDate } from "../lib/post-date.ts";
+import { formatPostAge, formatPostDate } from "../lib/post-date.ts";
 
 test("stored timestamps are formatted in Japan time with the specified month/day and zero-padded clock", () => {
   assert.equal(formatPostDate("2026-10-14T12:01:00Z"), "10月14日 21:01");
@@ -11,4 +11,16 @@ test("stored timestamps are formatted in Japan time with the specified month/day
 });
 test("missing or invalid post dates never fall back to the current time", () => {
   for (const invalid of ["", " ", "not a timestamp"]) assert.equal(formatPostDate(invalid), "―");
+});
+
+test("relative ages use the stored date, handle minute/hour/day boundaries and invalid dates", () => {
+  const date = "2026-10-14T12:01:00Z";
+  const start = Date.parse(date);
+  for (const [minutes, expected] of [[0, "たった今"], [0.99, "たった今"], [1, "1分前"], [15, "15分前"], [59, "59分前"], [60, "1時間前"], [1439, "23時間前"], [1440, "1日前"]] as const) {
+    assert.equal(formatPostAge(date, start + minutes * 60000), expected);
+  }
+  assert.equal(formatPostAge(date, start - 60000), "たった今");
+  assert.equal(formatPostAge("invalid", start), "―");
+  assert.equal(formatPostAge("", start), "―");
+  assert.equal(formatPostAge(date, NaN), "―");
 });

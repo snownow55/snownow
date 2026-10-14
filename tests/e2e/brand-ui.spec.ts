@@ -1,3 +1,4 @@
+import { selectRegion } from "./region-picker";
 import { test, expect } from "@playwright/test";
 
 const fixture = "http://127.0.0.1:54321";
@@ -44,7 +45,7 @@ test("area search matches names and kana without extra post reads or changing re
   expect(postReads).toBe(initialReads);
   await page.getByRole("button", { name: "最新投稿順", exact: true }).click();
   await search.fill("キロロ");
-  await page.getByRole("region", { name: "エリア選択" }).getByRole("button", { name: "空知", exact: true }).click();
+  await selectRegion(page, "空知");
   await expect(page.getByRole("button", { name: "最新投稿順", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(cards).toHaveCount(0);
   await page.getByRole("button", { name: "検索をクリア", exact: true }).click();
@@ -58,7 +59,7 @@ for (const width of [320, 1280]) {
     await page.emulateMedia({ colorScheme: "dark" });
     await page.goto("/");
     await expect(page).toHaveTitle("SNOW VIKING");
-    await expect(page.getByRole("heading", { name: "滑る前に、ゲレンデの今を。", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "SNOW VIKING", level: 1 })).toBeVisible();
     await expect(page.getByLabel("正式なロゴ・キャラクター素材は準備中")).toBeVisible();
     await expect(page.locator("article img, article svg")).toHaveCount(0);
     const owns = page.getByRole("article", { name: "スノークルーズオーンズ", exact: true });
