@@ -85,7 +85,6 @@ test("all nine regions show their 59 resorts in kana order on mobile", async ({ 
 test("top cards show five condition values and safe comments with independent links", async ({ page }) => {
   await page.goto("/");
   const card = page.getByRole("region", { name: "スキー場一覧" }).getByRole("article", { name: "スノークルーズオーンズ", exact: true });
-  await card.locator("summary").click();
   for (const [label, value] of [
     ["ゲレンデ内の位置", "山頂・上部"], ["雪質", "パウダー"], ["営業開始後の降雪", "ほぼ無し"],
     ["荒れ具合", "きれい"], ["混雑", "空いている"],
@@ -407,7 +406,7 @@ for (const [name, displayName, region, label] of [
   });
 }
 
-test("latest comments are safe text limited to three lines and empty latest comments do not reveal older ones", async ({ page }) => {
+test("latest comments are safe text limited to two lines and empty latest comments do not reveal older ones", async ({ page }) => {
   const old = { ...body, id: 1, resort: "オーンズ", condition: "★★★★★", created_at: "2026-10-09T00:00:00Z", comment: "以前のコメント" };
   let comment = '<img src=x onerror="window.commentExecuted=true">\n' + "長いコメント".repeat(150) + "\n4行目\n5行目";
   await page.route(fixture + "/rest/v1/snow_posts?**", (route) => route.fulfill({
@@ -421,15 +420,14 @@ test("latest comments are safe text limited to three lines and empty latest comm
   const text = card.getByLabel("現地コメント", { exact: true });
   await expect(text).toHaveText(comment);
   await expect(card.locator("img, script")).toHaveCount(0);
-  await card.locator("summary").click();
   const dimensions = await text.evaluate((element) => {
     const style = getComputedStyle(element);
     return { clamp: style.webkitLineClamp, overflow: style.overflow,
       height: element.getBoundingClientRect().height, lineHeight: parseFloat(style.lineHeight), scrollHeight: element.scrollHeight };
   });
-  expect(dimensions.clamp).toBe("3");
+  expect(dimensions.clamp).toBe("2");
   expect(dimensions.overflow).toBe("hidden");
-  expect(dimensions.height).toBeLessThanOrEqual(dimensions.lineHeight * 3 + 1);
+  expect(dimensions.height).toBeLessThanOrEqual(dimensions.lineHeight * 2 + 1);
   expect(dimensions.scrollHeight).toBeGreaterThan(dimensions.height);
   expect(await page.evaluate(() => "commentExecuted" in window)).toBe(false);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -552,13 +550,13 @@ for (const width of [320, 390, 1280]) {
     await expect(owns.locator("dl")).toContainText("パウダー");
     await expect(owns.locator("dl")).toContainText("空いている");
     await expect(owns.locator("dl")).toContainText("きれい");
-    await expect(owns.locator("details")).not.toHaveAttribute("open");
+    await expect(owns.locator("details, summary")).toHaveCount(0);
     const empty = list.getByRole("article", { name: "さっぽろばんけい", exact: true });
     await expect(empty.getByText("現地投稿なし", { exact: true })).toBeVisible();
     await expect(empty.locator("dd")).toHaveText(["―", "―", "―", "―"]);
     const metrics = await owns.evaluate((element) => ({ height: element.getBoundingClientRect().height,
       background: getComputedStyle(element).backgroundColor }));
-    expect(metrics.height).toBeLessThan(340);
+    expect(metrics.height).toBeLessThan(420);
     expect(metrics.background).toBe("rgb(255, 255, 255)");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     if (width === 1280) {
@@ -567,7 +565,6 @@ for (const width of [320, 390, 1280]) {
     }
     await page.screenshot({ path: test.info().outputPath("top.png") });
     await owns.screenshot({ path: test.info().outputPath("posted-card.png") });
-    await owns.locator("summary").click();
     await expect(owns.getByLabel("現地コメント", { exact: true })).toBeVisible();
     await expect(owns).toContainText("山頂・上部");
     await owns.getByRole("link", { name: "詳細を見る", exact: true }).click();

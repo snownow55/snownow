@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { Brand, PageShell } from "@/components/ui";
+import { ResortMemo } from "@/components/resort-memo";
+import { formatPostDate } from "@/lib/post-date";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -155,7 +157,10 @@ function Home() {
                       <h3 id={`resort-${resort.id}`} className="text-base font-bold leading-snug break-words">{resort.display_name}</h3>
                       {latestPost && <p className="mt-1 text-[11px] text-slate-500">最新投稿 {summary?.count}件</p>}
                     </div>
-                    {latestPost && <time dateTime={latestPost.created_at} title={new Date(latestPost.created_at).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })} className="shrink-0 rounded-full bg-accent-soft px-2 py-1 text-[11px] font-medium text-brand">{getTimeAgo(latestPost.created_at)}</time>}
+                    {latestPost && <div className="shrink-0 text-right">
+                      <span aria-label="投稿からの経過時間" className="inline-block rounded-full bg-accent-soft px-2 py-1 text-[11px] font-medium text-brand">{getTimeAgo(latestPost.created_at)}</span>
+                      <time dateTime={latestPost.created_at} aria-label="投稿日時（日本時間）" className="mt-1 block text-[11px] text-slate-600">{formatPostDate(latestPost.created_at)}</time>
+                    </div>}
                   </div>
                   {!latestPost && <p className="mb-3 text-xs text-slate-500">{postsLoading ? "投稿情報を読み込んでいます…" : postsError ? "投稿情報を表示できません" : "現地投稿なし"}</p>}
                   <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-brand/10">
@@ -166,6 +171,7 @@ function Home() {
                       </div>
                     ))}
                   </dl>
+                  {latestPost && <ResortMemo key={latestPost.id} area={latestPost.area} comment={latestPost.comment} />}
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     <Link href={`/resort/${encodeURIComponent(resort.name)}`}
                       className="ui-secondary gap-1 text-xs">
@@ -176,18 +182,6 @@ function Home() {
                       <span aria-hidden="true">＋</span>投稿する
                     </Link>
                   </div>
-                  {latestPost && (
-                    <details className="mt-2 text-xs">
-                      <summary className="min-h-11 cursor-pointer py-3 font-medium text-slate-500 hover:text-brand">現地メモ</summary>
-                      <div className="space-y-2 rounded-xl bg-brand-soft p-3 text-slate-700">
-                        <div className="flex justify-between gap-3"><span className="text-slate-500">ゲレンデ内の位置</span><span>{latestPost.area?.trim() || "―"}</span></div>
-                        {latestPost.comment.trim() && <div className="border-t border-slate-200 pt-2">
-                          <p className="mb-1 text-slate-500">現地コメント</p>
-                          <p aria-label="現地コメント" className="line-clamp-3 whitespace-pre-wrap break-words text-sm leading-6">{latestPost.comment}</p>
-                        </div>}
-                      </div>
-                    </details>
-                  )}
                 </article>
               );
             })}
