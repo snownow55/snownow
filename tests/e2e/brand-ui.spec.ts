@@ -62,8 +62,7 @@ for (const width of [320, 1280]) {
     await expect(page.getByLabel("正式なロゴ・キャラクター素材は準備中")).toBeVisible();
     await expect(page.locator("article img, article svg")).toHaveCount(0);
     const owns = page.getByRole("article", { name: "スノークルーズオーンズ", exact: true });
-    await expect(owns.locator("dl")).toContainText("営業開始後の降雪");
-    await expect(owns.locator("dl")).toContainText("ほぼ無し");
+    await expect(owns.locator("dd")).toHaveText(["未取得", "未取得", "未取得"]);
     await page.screenshot({ path: test.info().outputPath("home.png") });
     const postPath = (await owns.getByRole("link", { name: "投稿する", exact: true }).getAttribute("href"))!;
     await page.goto("/login?next=" + encodeURIComponent(postPath));
