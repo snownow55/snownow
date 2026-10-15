@@ -22,8 +22,10 @@ export function MorningResortCard({ resort }: { resort: Resort }) {
         <dt className="text-[10px] text-slate-600">{label}</dt><dd className="mt-1 text-sm font-semibold text-slate-500">未取得</dd>
       </div>)}
     </dl>
-    <p className="mt-2 text-[10px] text-slate-500">詳細リンクでは既存のユーザー投稿を閲覧できます。</p>
-    <ResortActions resort={resort} />
+    <Link href={`/resort/${encodeURIComponent(resort.name)}`}
+      className="ui-secondary mt-3 w-full min-w-0 px-2 text-xs leading-relaxed break-words sm:text-sm">
+      今のゲレンデコンディションを見る
+    </Link>
   </article>;
 }
 

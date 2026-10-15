@@ -34,6 +34,14 @@ for (const width of [320, 390, 1280]) {
     await expect(list.getByRole("article")).toHaveCount(13);
     await expect(list.locator("dd")).toHaveText(Array(39).fill("未取得"));
     await expect(list.locator("time")).toHaveCount(0);
+    await expect(list.getByRole("link")).toHaveCount(13);
+    await expect(list.getByRole("link", { name: "詳細を見る", exact: true })).toHaveCount(0);
+    await expect(list.getByRole("link", { name: "投稿する", exact: true })).toHaveCount(0);
+    const morningLink = list.getByRole("article", { name: "スノークルーズオーンズ", exact: true }).getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true });
+    const fit = await morningLink.evaluate((el) => ({ width: el.clientWidth, content: el.scrollWidth, height: el.getBoundingClientRect().height }));
+    expect(fit.content).toBeLessThanOrEqual(fit.width);
+    expect(fit.height).toBeGreaterThanOrEqual(44);
+    await morningLink.screenshot({ path: test.info().outputPath("morning-action.png") });
     await expect(page.getByRole("button", { name: "最新投稿順", exact: true })).toBeEnabled();
     await expect(page.getByText("滑る前に、ゲレンデの今を。", { exact: true })).toHaveCount(0);
     await expect(page.getByText("朝の公式情報と、ユーザーが伝えるゲレンデの今。", { exact: true })).toHaveCount(0);

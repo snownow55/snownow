@@ -33,8 +33,8 @@ test("area search matches names and kana without extra post reads or changing re
     await search.fill(query);
     await expect(cards).toHaveCount(1);
     await expect(cards.getByRole("heading", { level: 3 })).toHaveText(display);
-    const href = await cards.getByRole("link", { name: "投稿する", exact: true }).getAttribute("href");
-    expect(new URL(href!, page.url()).searchParams.get("resort")).toBe(canonical);
+    const href = await cards.getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true }).getAttribute("href");
+    expect(new URL(href!, page.url()).pathname).toBe("/resort/" + encodeURIComponent(canonical));
   }
   await search.fill("<script>未登録</script>");
   await expect(cards).toHaveCount(0);
@@ -65,7 +65,8 @@ for (const width of [320, 1280]) {
     const owns = page.getByRole("article", { name: "スノークルーズオーンズ", exact: true });
     await expect(owns.locator("dd")).toHaveText(["未取得", "未取得", "未取得"]);
     await page.screenshot({ path: test.info().outputPath("home.png") });
-    const postPath = (await owns.getByRole("link", { name: "投稿する", exact: true }).getAttribute("href"))!;
+    await owns.getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true }).click();
+    const postPath = (await page.getByRole("link", { name: "このスキー場の情報を投稿", exact: false }).getAttribute("href"))!;
     await page.goto("/login?next=" + encodeURIComponent(postPath));
     await page.getByLabel("メールアドレス").fill("snow@example.test");
     await page.getByLabel("パスワード", { exact: true }).fill("fixture-password-123");
