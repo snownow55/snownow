@@ -53,14 +53,31 @@ test("area search matches names and kana without extra post reads or changing re
   expect((await (await request.get(fixture + "/__stats")).json()).inserts).toBe(0);
 });
 
-for (const width of [320, 1280]) {
+for (const width of [320, 390, 1280]) {
   test(`brand theme remains light across top, detail, post and auth at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
     await page.emulateMedia({ colorScheme: "dark" });
     await page.goto("/");
     await expect(page).toHaveTitle("SNOW VIKING");
-    await expect(page.getByRole("heading", { name: "SNOW VIKING", level: 1 })).toBeVisible();
-    await expect(page.getByLabel("正式なロゴ・キャラクター素材は準備中")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "スキー場のコンディション", level: 1 })).toBeVisible();
+    await expect(page.getByText("LOGO 準備中", { exact: true })).toHaveCount(0);
+    const logo = page.getByRole("img", { name: "SNOW VIKING 公式マスコット", exact: true });
+    await expect(logo).toHaveCount(1);
+    await expect(logo).toBeVisible();
+    await expect(logo).toHaveJSProperty("complete", true);
+    expect(await logo.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
+    expect(await logo.getAttribute("src")).toContain("snow-viking-logo");
+    const logoSize = (await logo.boundingBox())!;
+    expect(logoSize.width).toBe(width < 640 ? 48 : 56);
+    expect(logoSize.height).toBe(logoSize.width);
+    const brand = page.getByRole("navigation").locator(".ui-brand");
+    await expect(page.locator(".ui-brand")).toHaveCount(1);
+    await expect(brand).toHaveText("SNOW VIKING");
+    await expect(brand).toHaveCSS("color", "rgb(8, 125, 137)");
+    await expect(brand.locator("span")).toHaveText("V");
+    await expect(brand.locator("span")).toHaveCSS("color", "rgb(185, 71, 19)");
+    await expect(page.getByText("ゲレンデ選びに、今の情報を。", { exact: true })).toHaveCount(1);
+    await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /^ゲレンデ選びに、今の情報を。/);
     await expect(page.locator("article img, article svg")).toHaveCount(0);
     const owns = page.getByRole("article", { name: "スノークルーズオーンズ", exact: true });
     await expect(owns.locator("dd")).toHaveText(["未取得", "未取得", "未取得"]);
@@ -76,6 +93,9 @@ for (const width of [320, 1280]) {
       await page.goto(path);
       const main = page.getByRole("main");
       await expect(main).toBeVisible();
+      await expect(page.getByRole("img", { name: "SNOW VIKING 公式マスコット", exact: true })).toBeVisible();
+      await expect(page.locator(".ui-brand")).toHaveCount(1);
+      await expect(page.getByText("ゲレンデ選びに、今の情報を。", { exact: true })).toHaveCount(1);
       const colors = await main.evaluate((element) => ({ background: getComputedStyle(element).backgroundColor,
         heading: getComputedStyle(element.querySelector("h1")!).color }));
       expect(colors.background).toBe("rgb(247, 251, 252)");

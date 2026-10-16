@@ -1,5 +1,5 @@
 "use client";
-import { Brand, PageShell } from "@/components/ui";
+import { PageShell } from "@/components/ui";
 
 import { Suspense, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -116,7 +116,6 @@ function PostForm() {
         </button>
 
         <header className="mb-8">
-          <div className="mb-3"><Brand /></div>
 
           <h1 className="text-3xl font-bold break-words">
             {fromDetail && selectedResort ? `${selectedResort.display_name}のコンディションを投稿` : "コンディションを投稿"}

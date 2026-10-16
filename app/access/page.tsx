@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { Brand, PageShell } from "@/components/ui";
+import { PageShell } from "@/components/ui";
 
 export default function AccessPage() {
   return <PageShell><div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-    <Brand placeholder />
     <p className="mt-6 text-xs font-semibold text-accent">提供予定のサービス</p>
     <h1 className="mt-2 text-2xl font-bold">現地情報の閲覧方法</h1>
     <p className="mt-3 text-sm leading-relaxed text-slate-600">朝の公式情報は誰でも無料。ゲレンデの今は、現地からの投稿で獲得するチケット、または月額会員で閲覧できる予定です。</p>

@@ -1,5 +1,5 @@
 "use client";
-import { Brand, PageShell } from "@/components/ui";
+import { PageShell } from "@/components/ui";
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -137,7 +137,6 @@ export function AuthForm({ mode }: { mode: Mode }) {
   return (
     <PageShell className="px-5 py-8">
       <div className="ui-card mx-auto max-w-md p-5 sm:p-7">
-        <div className="mb-3"><Brand /></div>
         <h1 className="mb-4 text-2xl font-bold">{titles[mode]}</h1>
         {!supabase && (
           <p role="alert" className="mb-5 ui-error">

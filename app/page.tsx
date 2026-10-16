@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Brand, PageShell } from "@/components/ui";
+import { PageShell } from "@/components/ui";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -60,9 +60,7 @@ function Home() {
   return (
     <PageShell>
       <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-6">
-        <header className="mb-3">
-          <h1 aria-label="SNOW VIKING"><Brand placeholder /></h1>
-        </header>
+        <h1 className="sr-only">スキー場のコンディション</h1>
 
         <div role="tablist" aria-label="情報の種類" className="mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-brand/15 bg-white p-2">
           {([["morning", "朝のコンディション", "無料・公式情報"], ["live", "ゲレンデの今", "ユーザー現地投稿"]] as const).map(([value, label, caption]) => (

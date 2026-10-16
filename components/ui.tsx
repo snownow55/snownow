@@ -1,10 +1,14 @@
 import type { ReactNode } from "react";
+import Image from "next/image";
+import mascot from "../public/snow-viking-logo.png";
 
-export function Brand({ placeholder = false }: { placeholder?: boolean }) {
+export function Brand() {
   return (
-    <span className="inline-flex flex-wrap items-center gap-3">
-      {placeholder && <span className="rounded-xl border border-dashed border-brand/40 bg-white px-3 py-2 text-[10px] font-medium tracking-normal text-slate-600" aria-label="正式なロゴ・キャラクター素材は準備中">LOGO 準備中</span>}
-      <span className="ui-brand">SNOW VIKING</span>
+    <span className="inline-flex items-center gap-3">
+      <Image src={mascot} alt="SNOW VIKING 公式マスコット" width={48} height={48}
+        sizes="(min-width: 640px) 56px, 48px" preload
+        className="size-12 shrink-0 object-contain sm:size-14" />
+      <span className="ui-brand whitespace-nowrap">SNOW <span className="text-accent">V</span>IKING</span>
     </span>
   );
 }

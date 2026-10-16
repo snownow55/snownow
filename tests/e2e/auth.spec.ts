@@ -14,7 +14,7 @@ test("public list and resort preserve display; unsigned users cannot post", asyn
 }) => {
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "SNOW VIKING" }),
+    page.getByRole("heading", { name: "スキー場のコンディション" }),
   ).toBeVisible();
   await page.getByRole("article", { name: "スノークルーズオーンズ", exact: true }).getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true }).click();
   await expect(

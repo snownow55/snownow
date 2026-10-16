@@ -512,7 +512,7 @@ for (const width of [320, 390, 1280]) {
     await page.goto("/");
     const list = page.getByRole("region", { name: "スキー場一覧" });
     await expect(list.getByRole("article")).toHaveCount(13);
-    await expect(page.getByRole("main").getByText("SNOW VIKING", { exact: true })).toBeVisible();
+    await expect(page.getByRole("navigation").getByRole("link", { name: "SNOW VIKING トップページ", exact: true })).toBeVisible();
     const owns = list.getByRole("article", { name: "スノークルーズオーンズ", exact: true });
     await expect(owns.locator("time")).toHaveCount(0);
     await expect(owns.locator("dd")).toHaveText(["未取得", "未取得", "未取得"]);

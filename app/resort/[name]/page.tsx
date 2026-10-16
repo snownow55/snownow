@@ -1,5 +1,5 @@
 "use client";
-import { Brand, PageShell } from "@/components/ui";
+import { PageShell } from "@/components/ui";
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -108,7 +108,6 @@ export default function ResortPage() {
         </Link>
 
         <header className="mb-8 mt-6">
-          <div className="mb-3"><Brand /></div>
 
           <h1 className="text-3xl font-bold break-words">
             {resort.display_name}

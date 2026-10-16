@@ -6,7 +6,7 @@ import { AuthProvider } from "@/components/auth-provider";
 
 export const metadata: Metadata = {
   title: "SNOW VIKING",
-  description: "滑る前に、ゲレンデの今を。北海道59スキー場のユーザー現地投稿。",
+  description: "ゲレンデ選びに、今の情報を。北海道59スキー場の朝の公式情報とユーザー現地投稿。",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
