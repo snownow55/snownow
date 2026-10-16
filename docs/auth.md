@@ -24,7 +24,19 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 publishable key を使用します。service_role / secret key は使わず、公開変数に入れないでください。サイト URL はパス・クエリ・認証情報を含まない正式な origin にします。本番で実行する場合は HTTPS の正式 URL が必要です。今回、本番デプロイはしていません。
 
-Supabase の変数が未設定なら通信せず、一覧・詳細の枠と設定不足メッセージを表示します。認証フォームは無効化されます。公開サイトでのコールバック・Cookie 認証投稿は、未設定の Site URL を許可しません。開発時の localhost / 127.0.0.1 はローカルの origin にフォールバックします。
+Supabase の変数が未設定なら通信せず、一覧・詳細の枠と設定不足メッセージを表示します。認証フォームは無効化されます。公開サイトでのコールバックは、未設定の Site URL を許可しません。Cookie 認証投稿も原則同様ですが、Vercel Preview では後述のシステム環境変数による追加許可があります。開発時の localhost / 127.0.0.1 はローカルの origin にフォールバックします。
+
+### Vercel Preview からの投稿
+
+投稿APIは通常、サイトURL設定とのOrigin完全一致を要求します。Vercel上のPreview（サーバー環境の `VERCEL=1` かつ `VERCEL_ENV=preview`）に限り、Vercelが提供する `VERCEL_URL` と `VERCEL_BRANCH_URL` のHTTPS Originも完全一致で許可します。環境値はパス・ポートなどを含まない正しい `*.vercel.app` ホスト名だけを受け付けます。これは接続元に対するワイルドカード許可ではなく、そのDeployment・ブランチの具体的な2ホストだけの許可です。任意のOrigin、Host、forwardedヘッダーから許可先を追加しません。本番環境ではこの追加許可は無効で、従来のサイトURL設定だけを使います。
+
+Vercelのシステム環境変数がPreviewのサーバーに提供されていることを確認してください。変数がない・不正な場合は許可範囲を広げません。独自Previewドメインは明示的なサイトURL設定が必要です。Supabase接続先は引き続き開発用プロジェクトを使います。この修正はSupabase接続設定・認証・RLSを変更しません。
+
+この追加許可は投稿API専用です。認証コールバックは引き続き正規のサイトURLを使うため、Previewのメール認証・復帰先には、サイトURLと開発用Supabaseのリダイレクト許可設定の整合が別途必要です。公開変数の設定変更には再ビルドが必要です。古いPreview DeploymentのURLには、新しいコードは自動反映されません。
+
+画面では `403 / Forbidden`（URLが許可されない）、`401`（ログイン確認失敗）、`403 / Email verification required`（メール未確認・匿名ユーザー）を区別します。不明な403やJSON以外のエラーはメール未認証と断定せず、固定のアクセス拒否メッセージを表示します。サーバーからの任意の文言は描画しません。
+
+ローカル確認：`npm test`、`npm run test:e2e`、`npx playwright test --config playwright.preview.config.ts`。最後のコマンドはローカルモックと架空のVercelホスト情報でPreview投稿を再現します。実際のVercel・Supabaseには接続しません。
 
 ## Supabase ダッシュボードで必要な設定（未適用）
 

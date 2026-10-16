@@ -8,6 +8,7 @@ import { useAuth } from "@/components/auth-provider";
 import { canPost } from "@/lib/auth-policy";
 import { useResortMaster } from "@/lib/use-resort-master";
 import { postUrl, regionUrl } from "@/lib/resort-master";
+import { postErrorMessage } from "@/lib/post-error";
 function PostForm() {
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -57,11 +58,8 @@ function PostForm() {
         }),
       });
       if (!response.ok) {
-        setSubmitError(
-          response.status === 401 || response.status === 403
-            ? "メール確認済みのアカウントでログインしてください。"
-            : "投稿に失敗しました。入力内容や通信状態を確認してください。",
-        );
+        const payload: unknown = await response.json().catch(() => null);
+        setSubmitError(postErrorMessage(response.status, payload));
         return;
       }
       router.push(regionUrl(selectedResort.region_code));

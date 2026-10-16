@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { safeNext, canPost } from "../lib/auth-policy.ts";
-import { siteOrigin } from "../lib/site-origin.ts";
+import { siteOrigin, isAllowedPostOrigin } from "../lib/site-origin.ts";
 import { validPost } from "../lib/post-validation.ts";
 import { createClient } from "@supabase/supabase-js";
 import { loadResortMaster, findResort, postUrl, regionUrl } from "../lib/resort-master.ts";
@@ -174,5 +174,50 @@ test("canonical site origin overrides request host and rejects unsafe configurat
   } finally {
     if (old === undefined) delete process.env.NEXT_PUBLIC_SITE_URL;
     else process.env.NEXT_PUBLIC_SITE_URL = old;
+  }
+});
+
+test("only exact server-provided Preview hosts supplement the canonical POST origin", () => {
+  const names = ["NODE_ENV", "NEXT_PUBLIC_SITE_URL", "VERCEL", "VERCEL_ENV", "VERCEL_URL", "VERCEL_BRANCH_URL"];
+  const old = Object.fromEntries(names.map((name) => [name, process.env[name]]));
+  const deployment = "snow-viking-deployment-fixture.vercel.app";
+  const branch = "snow-viking-git-auth-fixture.vercel.app";
+  const requestUrl = `https://${deployment}/api/posts`;
+  try {
+    Object.assign(process.env, { NODE_ENV: "production", NEXT_PUBLIC_SITE_URL: "https://configured.example.test", VERCEL: "1",
+      VERCEL_ENV: "preview", VERCEL_URL: deployment, VERCEL_BRANCH_URL: branch });
+    for (const host of [deployment, branch]) assert.equal(isAllowedPostOrigin(requestUrl, `https://${host}`), true);
+    assert.equal(isAllowedPostOrigin(requestUrl, "https://configured.example.test"), true);
+    // Callback destinations are not broadened by Preview POST permissions.
+    assert.equal(siteOrigin(requestUrl), "https://configured.example.test");
+    for (const origin of [null, "", "null", "https://other-project.vercel.app", "https://evil.test", `http://${deployment}`,
+      `https://${deployment}/`, `https://${deployment}:444`, `https://${deployment}.evil.test`, `https://evil@${deployment}`, `https://${deployment}?x=1`]) {
+      assert.equal(isAllowedPostOrigin(requestUrl, origin), false);
+    }
+    assert.equal(isAllowedPostOrigin("https://evil.test/api/posts", "https://evil.test"), false);
+    process.env.NEXT_PUBLIC_SITE_URL = "";
+    assert.equal(isAllowedPostOrigin(requestUrl, `https://${deployment}`), true);
+    process.env.VERCEL_BRANCH_URL = "";
+    for (const host of ["https://evil.test", "evil.test", "other.vercel.app/", "evil@other.vercel.app", "other.vercel.app:443",
+      "other.vercel.app?x=1", " other.vercel.app", "nested.other.vercel.app", "-other.vercel.app", "a".repeat(64) + ".vercel.app"]) {
+      process.env.VERCEL_URL = host;
+      assert.equal(isAllowedPostOrigin("https://evil.test/api/posts", "https://evil.test"), false);
+      assert.equal(isAllowedPostOrigin(requestUrl, "https://other.vercel.app"), false);
+    }
+    process.env.VERCEL_URL = deployment;
+    process.env.NEXT_PUBLIC_SITE_URL = "https://configured.example.test";
+    for (const environment of ["production", "development", ""]) {
+      process.env.VERCEL_ENV = environment;
+      assert.equal(isAllowedPostOrigin(requestUrl, `https://${deployment}`), false);
+      assert.equal(isAllowedPostOrigin(requestUrl, "https://configured.example.test"), true);
+    }
+    process.env.VERCEL_ENV = "preview";
+    delete process.env.VERCEL;
+    assert.equal(isAllowedPostOrigin(requestUrl, `https://${deployment}`), false);
+  } finally {
+    for (const name of names) {
+      if (old[name] === undefined) delete process.env[name];
+      else process.env[name] = old[name];
+    }
   }
 });

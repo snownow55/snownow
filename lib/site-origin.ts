@@ -21,3 +21,18 @@ export function siteOrigin(requestUrl: string): string | null {
   }
   return null;
 }
+
+// POST only: redirects continue to use the canonical siteOrigin above.
+// Trust exact server-provided Vercel hosts, never Host/forwarded headers or a
+// wildcard that would include other projects. Production keeps its old policy.
+export function isAllowedPostOrigin(requestUrl: string, origin: string | null): boolean {
+  if (!origin) return false;
+  const canonical = siteOrigin(requestUrl);
+  if (canonical && origin === canonical) return true;
+  if (process.env.VERCEL !== "1" || process.env.VERCEL_ENV !== "preview") return false;
+
+  return [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL].some((host) => {
+    if (!host || !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.vercel\.app$/i.test(host)) return false;
+    return origin === `https://${host.toLowerCase()}`;
+  });
+}

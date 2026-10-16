@@ -1,6 +1,6 @@
 import { serverSupabase } from "@/lib/supabase-server";
 import { canPost } from "@/lib/auth-policy";
-import { siteOrigin } from "@/lib/site-origin";
+import { isAllowedPostOrigin } from "@/lib/site-origin";
 import { validPost } from "@/lib/post-validation";
 import { findResort } from "@/lib/resort-master";
 
@@ -29,8 +29,7 @@ async function readPostBody(request: Request): Promise<string | null> {
 
 export async function POST(request: Request) {
   // Cookie-authenticated writes must originate from this site.
-  const origin = siteOrigin(request.url);
-  if (!origin || request.headers.get("origin") !== origin)
+  if (!isAllowedPostOrigin(request.url, request.headers.get("origin")))
     return Response.json({ error: "Forbidden" }, { status: 403 });
   const client = await serverSupabase();
   if (!client)
