@@ -38,6 +38,9 @@ for (const width of [320, 390, 1280]) {
     await expect(list.getByRole("link", { name: "詳細を見る", exact: true })).toHaveCount(0);
     await expect(list.getByRole("link", { name: "投稿する", exact: true })).toHaveCount(0);
     const morningLink = list.getByRole("article", { name: "スノークルーズオーンズ", exact: true }).getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true });
+    await expect(morningLink).toHaveCSS("background-color", "rgb(185, 71, 19)");
+    await expect(morningLink).toHaveCSS("color", "rgb(255, 255, 255)");
+    await expect(morningLink).toHaveAttribute("href", "/resort/" + encodeURIComponent("オーンズ"));
     const fit = await morningLink.evaluate((el) => ({ width: el.clientWidth, content: el.scrollWidth, height: el.getBoundingClientRect().height }));
     expect(fit.content).toBeLessThanOrEqual(fit.width);
     expect(fit.height).toBeGreaterThanOrEqual(44);

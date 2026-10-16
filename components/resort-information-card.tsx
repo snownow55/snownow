@@ -23,7 +23,7 @@ export function MorningResortCard({ resort }: { resort: Resort }) {
       </div>)}
     </dl>
     <Link href={`/resort/${encodeURIComponent(resort.name)}`}
-      className="ui-secondary mt-3 w-full min-w-0 px-2 text-xs leading-relaxed break-words sm:text-sm">
+      className="ui-primary mt-3 w-full min-w-0 px-2 text-xs leading-relaxed break-words sm:text-sm">
       今のゲレンデコンディションを見る
     </Link>
   </article>;
