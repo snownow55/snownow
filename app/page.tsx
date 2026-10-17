@@ -6,7 +6,6 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useResortMaster } from "@/lib/use-resort-master";
-import { regionUrl } from "@/lib/resort-master";
 import { RESORT_READINGS, sortResorts, type ResortSort } from "@/lib/resort-sort";
 import { loadResortLatestDates, LATEST_DATES_ERROR } from "@/lib/resort-latest-dates";
 import { LockedResortCard, MorningResortCard } from "@/components/resort-information-card";
@@ -24,9 +23,23 @@ function Home() {
   const resortsInRegion = useMemo(() => master.data?.resorts.filter(
     (resort) => resort.region_code === selectedRegion?.code && resort.is_active,
   ) ?? [], [master.data, selectedRegion?.code]);
-  const [tab, setTab] = useState<"morning" | "live">("morning");
-  const [search, setSearch] = useState("");
-  const [sortOrder, setSortOrder] = useState<ResortSort>("kana");
+  const tab = searchParams.get("tab") === "live" ? "live" : "morning";
+  const search = searchParams.get("search") ?? "";
+  const sortOrder: ResortSort = searchParams.get("sort") === "latest" ? "latest" : "kana";
+  function updateListState(changes: Record<string, string>) {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(changes)) {
+      if (value) params.set(key, value);
+      else params.delete(key);
+    }
+    router.replace(`/?${params.toString()}`, { scroll: false });
+  }
+  const returnTo = `/?${new URLSearchParams({
+    region: selectedRegion?.code ?? "",
+    tab,
+    sort: sortOrder,
+    ...(search ? { search } : {}),
+  }).toString()}`;
   const postKey = JSON.stringify(resortsInRegion.map((resort) => resort.name));
   const [postState, setPostState] = useState<{
     key: string;
@@ -66,12 +79,12 @@ function Home() {
           {([["morning", "朝のコンディション", "無料・公式情報"], ["live", "ゲレンデの今", "ユーザー現地投稿"]] as const).map(([value, label, caption]) => (
             <button key={value} id={`tab-${value}`} role="tab" aria-selected={tab === value}
               aria-controls="information-panel" tabIndex={tab === value ? 0 : -1}
-              onClick={() => setTab(value)}
+              onClick={() => updateListState({ tab: value })}
               onKeyDown={(event) => {
                 if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
                 event.preventDefault();
                 const next = event.key === "Home" ? "morning" : event.key === "End" ? "live" : tab === "morning" ? "live" : "morning";
-                setTab(next);
+                updateListState({ tab: next });
                 document.getElementById(`tab-${next}`)?.focus();
               }}
               className={`min-h-14 rounded-xl px-2 py-2 text-xs font-bold sm:text-sm ${tab === value ? "bg-brand text-white shadow-sm" : "text-brand hover:bg-brand-soft"}`}>
@@ -98,7 +111,7 @@ function Home() {
               <div className="md:hidden">
                 <label htmlFor="home-region" className="sr-only">地域を選択</label>
                 <select id="home-region" className="ui-input text-sm font-semibold text-brand" value={selectedRegion?.code ?? ""}
-                  onChange={(event) => router.replace(regionUrl(event.target.value), { scroll: false })}>
+                  onChange={(event) => updateListState({ region: event.target.value })}>
                   {!selectedRegion && <option value="" disabled>地域を選択してください</option>}
                   {master.data.regions.map((region) => <option key={region.code} value={region.code}>{region.name}</option>)}
                 </select>
@@ -107,7 +120,7 @@ function Home() {
               <div className="hidden grid-cols-3 gap-2 md:grid lg:grid-cols-9">
                 {master.data.regions.map((region) => (
                   <button key={region.code} aria-label={region.name} aria-pressed={region.code === selectedRegion?.code}
-                    onClick={() => router.replace(regionUrl(region.code), { scroll: false })}
+                    onClick={() => updateListState({ region: region.code })}
                     className={`ui-tab break-words ${region.code === selectedRegion?.code ? "ui-tab-active" : "ui-tab-idle"}`}>
                     {region.name.split("・").map((part, index, parts) => <span key={index} className="inline-block">{part}{index < parts.length - 1 ? "・" : ""}</span>)}
                   </button>
@@ -121,9 +134,9 @@ function Home() {
             <div className="flex items-center gap-2">
               <div className="relative min-w-0 flex-1">
                 <svg aria-hidden="true" className="pointer-events-none absolute top-4 left-3 size-4 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="10" cy="10" r="6" /><path d="m15 15 5 5" /></svg>
-                <input id="resort-search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} className="ui-input pl-10" placeholder="スキー場名・読み仮名" maxLength={200} />
+                <input id="resort-search" type="search" value={search} onChange={(event) => updateListState({ search: event.target.value })} className="ui-input pl-10" placeholder="スキー場名・読み仮名" maxLength={200} />
               </div>
-              {search && <button type="button" className="ui-secondary text-xs" onClick={() => setSearch("")}>検索をクリア</button>}
+              {search && <button type="button" className="ui-secondary text-xs" onClick={() => updateListState({ search: "" })}>検索をクリア</button>}
             </div>
           </div>}
           <section aria-label="スキー場一覧">
@@ -138,7 +151,7 @@ function Home() {
                   <div className="flex gap-1">
                     {([["kana", "五十音順"], ["latest", "最新投稿順"]] as const).map(([value, label]) => (
                       <button key={value} type="button" aria-pressed={sortOrder === value}
-                        disabled={value === "latest" && (postsLoading || !!postsError)} onClick={() => setSortOrder(value)}
+                        disabled={value === "latest" && (postsLoading || !!postsError)} onClick={() => updateListState({ sort: value })}
                         className={`min-h-11 rounded-lg px-3 py-2 text-xs font-semibold transition disabled:opacity-50 ${sortOrder === value ? "bg-brand text-white" : "text-slate-600 hover:bg-brand-soft"}`}>
                         {label}
                       </button>
@@ -156,8 +169,8 @@ function Home() {
             {resorts.length > 0 && !visibleResorts.length && <p role="status" className="ui-card mb-4 p-5 text-sm">検索に一致するスキー場がありません。検索語を変更してください。</p>}
             <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {visibleResorts.map((resort) => tab === "morning"
-                ? <MorningResortCard key={resort.name} resort={resort} />
-                : <LockedResortCard key={resort.name} resort={resort} latest={postsLoading ? { state: "loading" }
+                ? <MorningResortCard key={resort.name} resort={resort} returnTo={returnTo} />
+                : <LockedResortCard key={resort.name} resort={resort} returnTo={returnTo} latest={postsLoading ? { state: "loading" }
                   : postsError ? { state: "error" } : { state: "ready", createdAt: latestDates.get(resort.name) ?? null }} />)}
             </div>
           </section>
