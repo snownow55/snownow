@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { PrototypeNotice } from "@/components/prototype-notice";
 import { PageShell } from "@/components/ui";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useResortMaster } from "@/lib/use-resort-master";
 import { RESORT_READINGS, sortResorts, type ResortSort } from "@/lib/resort-sort";
@@ -15,7 +16,6 @@ function searchText(value: string) {
 }
 
 function Home() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const master = useResortMaster();
   const regionCode = searchParams.get("region") ?? master.data?.regions[0]?.code;
@@ -27,12 +27,13 @@ function Home() {
   const search = searchParams.get("search") ?? "";
   const sortOrder: ResortSort = searchParams.get("sort") === "latest" ? "latest" : "kana";
   function updateListState(changes: Record<string, string>) {
-    const params = new URLSearchParams(searchParams.toString());
+    // Read the current URL synchronously so rapid filter changes cannot overwrite each other.
+    const params = new URLSearchParams(window.location.search);
     for (const [key, value] of Object.entries(changes)) {
       if (value) params.set(key, value);
       else params.delete(key);
     }
-    router.replace(`/?${params.toString()}`, { scroll: false });
+    window.history.replaceState(null, "", `/?${params.toString()}`);
   }
   const returnTo = `/?${new URLSearchParams({
     region: selectedRegion?.code ?? "",
@@ -92,9 +93,10 @@ function Home() {
             </button>
           ))}
         </div>
+        <PrototypeNotice />
         <div id="information-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} tabIndex={0}>
-          {tab === "morning" ? <p className="mb-3 text-xs leading-relaxed text-slate-600">【開発中のプロトタイプ】公式情報は無料で提供予定です。新雪量・積雪量は現在未取得です。</p> : <aside aria-label="現地情報の閲覧案内" className="mb-3 rounded-xl border border-orange-200 bg-accent-soft px-3 py-2">
-            <p className="text-xs leading-relaxed">投稿でチケットを獲得、または月額500円で見放題 <span className="text-slate-500">（提供予定）</span></p>
+          {tab === "live" && <aside aria-label="現地情報の閲覧案内" className="mb-3 rounded-xl border border-orange-200 bg-accent-soft px-3 py-2">
+            <p className="text-xs leading-relaxed">投稿でチケットを獲得、または月額500円で見放題 <span className="text-slate-500">（提供予定・未実装）</span></p>
             <Link href="/access" className="inline-flex min-h-11 items-center text-xs font-bold text-brand underline underline-offset-4">閲覧方法を見る</Link>
             <p className="text-[10px] leading-relaxed text-slate-600">ロックは固定の見本です。閲覧制御は未実装で、既存の詳細ページ・APIは公開されたままです。</p>
           </aside>}
@@ -161,8 +163,8 @@ function Home() {
               )}
             </div>
             {tab === "live" && <p className="mb-2 text-[10px] text-slate-500">最新投稿順：ユーザー投稿日時順（公式発表順ではありません）</p>}
-            {sortOrder === "latest" && postsLoading && <p role="status" className="mb-3 text-xs text-slate-600">最新投稿順を読み込んでいます…</p>}
-            {sortOrder === "latest" && postsError && <p className="mb-3 text-xs text-amber-900">最新投稿順を取得できないため、五十音順で表示しています。</p>}
+            {tab === "live" && sortOrder === "latest" && postsLoading && <p role="status" className="mb-3 text-xs text-slate-600">最新投稿順を読み込んでいます…</p>}
+            {tab === "live" && sortOrder === "latest" && postsError && <p className="mb-3 text-xs text-amber-900">最新投稿順を取得できないため、五十音順で表示しています。</p>}
             {postsError && <p role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{postsError}</p>}
             {master.data && selectedRegion && !resorts.length && <p className="text-sm text-slate-600">このエリアには現在投稿できるスキー場がありません。</p>}
 

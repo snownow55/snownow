@@ -20,7 +20,8 @@ test("area search matches names and kana without extra post reads or changing re
     if (new URL(req.url()).pathname === "/rest/v1/snow_posts" && req.method() === "GET") postReads++;
   });
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "最新投稿順", exact: true })).toBeEnabled();
+  await expect(page.getByRole("region", { name: "スキー場一覧" }).getByRole("article")).toHaveCount(13);
+  await expect(page.getByRole("status")).toHaveCount(0);
   const initialReads = postReads;
   const search = page.getByRole("searchbox");
   const cards = page.getByRole("region", { name: "スキー場一覧" }).getByRole("article");
@@ -43,6 +44,7 @@ test("area search matches names and kana without extra post reads or changing re
   await page.getByRole("button", { name: "検索をクリア", exact: true }).click();
   await expect(cards).toHaveCount(13);
   expect(postReads).toBe(initialReads);
+  await page.getByRole("tab", { name: "ゲレンデの今", exact: false }).click();
   await page.getByRole("button", { name: "最新投稿順", exact: true }).click();
   await search.fill("キロロ");
   await selectRegion(page, "空知");

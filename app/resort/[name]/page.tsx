@@ -1,9 +1,11 @@
 "use client";
+import { safeHomeReturn } from "@/lib/home-return";
+import { PrototypeNotice, ResortDemoNotice } from "@/components/prototype-notice";
 import { PageShell } from "@/components/ui";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useResortMaster } from "@/lib/use-resort-master";
 import { postUrl, regionUrl } from "@/lib/resort-master";
@@ -36,7 +38,8 @@ type SnowPost = {
   }
 
 
-export default function ResortPage() {
+function ResortPageContent() {
+  const searchParams = useSearchParams();
   const { name: segment } = useParams<{ name: string }>();
   let resortName = "";
   try { resortName = decodeURIComponent(segment); } catch { /* Invalid URL: no master match. */ }
@@ -44,6 +47,7 @@ export default function ResortPage() {
   const resort = master.data?.resorts.find((item) => item.name === resortName);
   const region = master.data?.regions.find((item) => item.code === resort?.region_code);
   const canonicalName = resort?.name;
+  const returnTo = safeHomeReturn(searchParams.get("returnTo")) ?? (resort ? regionUrl(resort.region_code) : "/");
 
   const [postState, setPostState] = useState<{ name: string; posts: SnowPost[]; error: string }>({ name: "", posts: [], error: "" });
   const posts = postState.name === canonicalName ? postState.posts : [];
@@ -89,11 +93,11 @@ export default function ResortPage() {
   if (master.error) return <PageShell className="p-6">
     <p role="alert" className="ui-error">{master.error}</p>
     <button className="min-h-11 py-3 text-brand" onClick={master.retry}>再読み込み</button>
-    <Link className="block py-3 text-brand" href="/">スキー場一覧へ戻る</Link>
+    <Link className="block py-3 text-brand" href={returnTo}>スキー場一覧へ戻る</Link>
   </PageShell>;
   if (!resort) return <PageShell className="p-6">
     <h1 className="text-xl font-bold">指定されたスキー場が見つかりません</h1>
-    <Link className="block py-3 text-brand" href="/">スキー場一覧へ戻る</Link>
+    <Link className="block py-3 text-brand" href={returnTo}>スキー場一覧へ戻る</Link>
   </PageShell>;
 
   return (
@@ -101,7 +105,7 @@ export default function ResortPage() {
       <div className="mx-auto max-w-md px-5 py-8">
 
         <Link
-          href={regionUrl(resort.region_code)}
+          href={returnTo}
           className="text-sm font-semibold text-brand"
         >
           ← スキー場一覧
@@ -117,6 +121,9 @@ export default function ResortPage() {
             {region?.name}・ユーザーの現地投稿
           </p>
         </header>
+
+        <PrototypeNotice />
+        <ResortDemoNotice name={resort.name} />
 
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-semibold">
@@ -210,4 +217,8 @@ export default function ResortPage() {
       </div>
     </PageShell>
   );
+}
+
+export default function ResortPage() {
+  return <Suspense fallback={<p role="status" className="p-6">スキー場を読み込んでいます…</p>}><ResortPageContent /></Suspense>;
 }

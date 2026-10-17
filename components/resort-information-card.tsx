@@ -1,17 +1,19 @@
 import Link from "next/link";
+import { resortDetailUrl } from "../lib/home-return";
+import { ResortDemoNotice } from "./prototype-notice";
 import { postUrl, type Resort } from "../lib/resort-master";
 import { formatPostAge, formatPostDate } from "../lib/post-date";
 
-function ResortActions({ resort }: { resort: Resort }) {
+function ResortActions({ resort, returnTo }: { resort: Resort; returnTo?: string }) {
   return <div className="mt-3 grid grid-cols-2 gap-2">
-    <Link href={`/resort/${encodeURIComponent(resort.name)}`} className="ui-secondary gap-1 text-xs">詳細を見る <span aria-hidden="true">↗</span></Link>
+    <Link href={resortDetailUrl(resort.name, returnTo)} className="ui-secondary gap-1 text-xs">詳細を見る <span aria-hidden="true">↗</span></Link>
     <Link href={postUrl(resort.name, resort.region_code, "detail")} className="ui-primary gap-1 text-xs"><span aria-hidden="true">＋</span>投稿する</Link>
   </div>;
 }
 
 // Official data integration is intentionally absent. Nothing is inferred from
 // user posts; future official fields/source links belong to this separate view.
-export function MorningResortCard({ resort }: { resort: Resort }) {
+export function MorningResortCard({ resort, returnTo }: { resort: Resort; returnTo?: string }) {
   return <article aria-labelledby={`resort-${resort.id}`} className="ui-card min-w-0 p-4">
     <div className="mb-3">
       <p className="mb-1 text-[10px] font-semibold text-brand">公式情報・無料</p>
@@ -22,7 +24,8 @@ export function MorningResortCard({ resort }: { resort: Resort }) {
         <dt className="text-[10px] text-slate-600">{label}</dt><dd className="mt-1 text-sm font-semibold text-slate-500">未取得</dd>
       </div>)}
     </dl>
-    <Link href={`/resort/${encodeURIComponent(resort.name)}`}
+    <ResortDemoNotice name={resort.name} />
+    <Link href={resortDetailUrl(resort.name, returnTo)}
       className="ui-primary mt-3 w-full min-w-0 px-2 text-xs leading-relaxed break-words sm:text-sm">
       今のゲレンデコンディションを見る
     </Link>
@@ -33,7 +36,7 @@ export type LatestPostStatus = { state: "loading" | "error" } | { state: "ready"
 
 // Receives only the master and public timestamp metadata, never post contents
 // or an entitlement flag. Blurred shapes are fixed decoration.
-export function LockedResortCard({ resort, latest }: { resort: Resort; latest: LatestPostStatus }) {
+export function LockedResortCard({ resort, latest, returnTo }: { resort: Resort; latest: LatestPostStatus; returnTo?: string }) {
   const createdAt = latest.state === "ready" ? latest.createdAt : null;
   return <article aria-labelledby={`resort-${resort.id}`} className="ui-card min-w-0 p-3 sm:p-4">
     <h3 id={`resort-${resort.id}`} className="text-base font-bold leading-snug break-words">{resort.display_name}</h3>
@@ -50,6 +53,7 @@ export function LockedResortCard({ resort, latest }: { resort: Resort; latest: L
       <svg aria-hidden="true" className="relative size-3.5 shrink-0 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="5" y="10" width="14" height="11" rx="3" /><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" /></svg>
       <p className="relative text-[11px] font-medium">投稿内容はロック中</p>
     </div>
-    <ResortActions resort={resort} />
+    <ResortDemoNotice name={resort.name} />
+    <ResortActions resort={resort} returnTo={returnTo} />
   </article>;
 }

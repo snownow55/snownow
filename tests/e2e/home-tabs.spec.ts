@@ -40,12 +40,12 @@ for (const width of [320, 390, 1280]) {
     const morningLink = list.getByRole("article", { name: "スノークルーズオーンズ", exact: true }).getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true });
     await expect(morningLink).toHaveCSS("background-color", "rgb(185, 71, 19)");
     await expect(morningLink).toHaveCSS("color", "rgb(255, 255, 255)");
-    await expect(morningLink).toHaveAttribute("href", "/resort/" + encodeURIComponent("オーンズ"));
+    expect(new URL((await morningLink.getAttribute("href"))!, page.url()).pathname).toBe("/resort/" + encodeURIComponent("オーンズ"));
     const fit = await morningLink.evaluate((el) => ({ width: el.clientWidth, content: el.scrollWidth, height: el.getBoundingClientRect().height }));
     expect(fit.content).toBeLessThanOrEqual(fit.width);
     expect(fit.height).toBeGreaterThanOrEqual(44);
     await morningLink.screenshot({ path: test.info().outputPath("morning-action.png") });
-    await expect(page.getByRole("button", { name: "最新投稿順", exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "最新投稿順", exact: true })).toHaveCount(0);
     await expect(page.getByText("滑る前に、ゲレンデの今を。", { exact: true })).toHaveCount(0);
     await expect(page.getByText("朝の公式情報と、ユーザーが伝えるゲレンデの今。", { exact: true })).toHaveCount(0);
     const picker = page.getByRole("region", { name: "エリア選択" });
@@ -57,6 +57,7 @@ for (const width of [320, 390, 1280]) {
     const before = selections.length;
     await live.click();
     await expect(live).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("button", { name: "最新投稿順", exact: true })).toBeEnabled();
     expect(await live.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(8, 125, 137)");
     await expect(list.getByRole("article")).toHaveCount(13);
     await expect(list.getByRole("link", { name: "閲覧方法を見る", exact: true })).toHaveCount(0);
