@@ -38,7 +38,7 @@ function Home() {
   const postsLoading = resortsInRegion.length > 0 && !currentPosts;
   const postsError = currentPosts?.error ?? "";
   const latestDates = currentPosts?.dates ?? new Map<string, string>();
-  const resorts = sortResorts(resortsInRegion, sortOrder, latestDates);
+  const resorts = sortResorts(resortsInRegion, tab === "morning" ? "kana" : sortOrder, latestDates);
   const query = searchText(search.trim());
   const visibleResorts = resorts.filter((resort) => [resort.name, resort.display_name, Object.hasOwn(RESORT_READINGS, resort.name) ? RESORT_READINGS[resort.name] : ""].some((name) => searchText(name).includes(query)));
 
@@ -80,7 +80,7 @@ function Home() {
           ))}
         </div>
         <div id="information-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} tabIndex={0}>
-          {tab === "morning" ? <p className="mb-3 text-xs leading-relaxed text-slate-600">公式情報は無料。新雪量・積雪量は取得準備中です。</p> : <aside aria-label="現地情報の閲覧案内" className="mb-3 rounded-xl border border-orange-200 bg-accent-soft px-3 py-2">
+          {tab === "morning" ? <p className="mb-3 text-xs leading-relaxed text-slate-600">【開発中のプロトタイプ】公式情報は無料で提供予定です。新雪量・積雪量は現在未取得です。</p> : <aside aria-label="現地情報の閲覧案内" className="mb-3 rounded-xl border border-orange-200 bg-accent-soft px-3 py-2">
             <p className="text-xs leading-relaxed">投稿でチケットを獲得、または月額500円で見放題 <span className="text-slate-500">（提供予定）</span></p>
             <Link href="/access" className="inline-flex min-h-11 items-center text-xs font-bold text-brand underline underline-offset-4">閲覧方法を見る</Link>
             <p className="text-[10px] leading-relaxed text-slate-600">ロックは固定の見本です。閲覧制御は未実装で、既存の詳細ページ・APIは公開されたままです。</p>
@@ -132,7 +132,7 @@ function Home() {
                 <h2 className="text-lg font-bold tracking-tight">{selectedRegion ? `${selectedRegion.name}のスキー場` : "スキー場"}</h2>
                 {selectedRegion && <p className="mt-1 text-xs text-slate-500">{visibleResorts.length} / {resorts.length}スキー場 · {tab === "morning" ? "公式情報（取得準備中）" : "ユーザー現地投稿（閲覧準備中）"}</p>}
               </div>
-              {master.data && selectedRegion && (
+              {master.data && selectedRegion && tab === "live" && (
                 <fieldset className="rounded-xl border border-slate-200 bg-white p-1">
                   <legend className="sr-only">並び順</legend>
                   <div className="flex gap-1">
@@ -147,7 +147,7 @@ function Home() {
                 </fieldset>
               )}
             </div>
-            <p className="mb-2 text-[10px] text-slate-500">最新投稿順：ユーザー投稿日時順（公式発表順ではありません）</p>
+            {tab === "live" && <p className="mb-2 text-[10px] text-slate-500">最新投稿順：ユーザー投稿日時順（公式発表順ではありません）</p>}
             {sortOrder === "latest" && postsLoading && <p role="status" className="mb-3 text-xs text-slate-600">最新投稿順を読み込んでいます…</p>}
             {sortOrder === "latest" && postsError && <p className="mb-3 text-xs text-amber-900">最新投稿順を取得できないため、五十音順で表示しています。</p>}
             {postsError && <p role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{postsError}</p>}
