@@ -37,12 +37,17 @@ for (const width of [320, 390, 1280]) {
     await expect(page.getByLabel("デモの注意事項")).toContainText("すべて架空のサンプル");
     await expect(page.getByLabel("デモの注意事項")).toContainText("2026年2月14日");
     await expect(list.getByText("未取得", { exact: true })).toHaveCount(30);
+    const morningLinks = list.getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true });
+    await expect(morningLinks).toHaveCount(10);
+    expect(await morningLinks.evaluateAll((links) => links.every((link) => link.scrollWidth <= link.clientWidth && link.getBoundingClientRect().height >= 44))).toBe(true);
+    await expect(list.getByRole("link", { name: /件のサンプルを見る|デモ詳細を見る/ })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "最新投稿順", exact: true })).toHaveCount(0);
     await expect(page.getByRole("navigation", { name: "アカウント" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: /ログイン|新規登録|投稿する|閲覧方法|課金/ })).toHaveCount(0);
     await expect(page.getByText(/接続設定が未完了|ログイン中/)).toHaveCount(0);
     await page.getByRole("tab", { name: "ゲレンデの今", exact: true }).click();
     await expect(list.locator("time")).toHaveCount(10);
+    await expect(list.getByRole("link", { name: "詳細を見る", exact: true })).toHaveCount(10);
     await expect(list).not.toContainText(/たった今|分前|時間前|日前/);
     await page.getByRole("button", { name: "最新投稿順", exact: true }).click();
     const sorted = [...kana].sort((a, b) => Date.parse(catalog.posts.filter((p) => p.resort === b.name).at(-1)!.createdAt) - Date.parse(catalog.posts.filter((p) => p.resort === a.name).at(-1)!.createdAt));
@@ -51,7 +56,7 @@ for (const width of [320, 390, 1280]) {
     await search.fill("ほろ");
     await expect(list.getByRole("article")).toHaveCount(1);
     const saved = page.url();
-    await list.getByRole("link").click();
+    await list.getByRole("link", { name: "詳細を見る", exact: true }).click();
     await expect(page.getByRole("heading", { name: "ほろたちスキー場", exact: true })).toBeVisible();
     const timeline = page.getByRole("list", { name: "デモ投稿の時系列" });
     await expect(timeline.getByRole("article")).toHaveCount(3);
@@ -67,7 +72,7 @@ for (const width of [320, 390, 1280]) {
     await expect(page.getByRole("button", { name: "最新投稿順", exact: true })).toHaveAttribute("aria-pressed", "true");
     await page.getByRole("tab", { name: "朝のコンディション", exact: true }).click();
     const morningSaved = page.url();
-    await list.getByRole("link").click();
+    await list.getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true }).click();
     await page.getByRole("link", { name: "一覧に戻って比較する", exact: true }).click();
     await expect(page).toHaveURL(morningSaved);
     await expect(page.getByRole("tab", { name: "朝のコンディション", exact: true })).toHaveAttribute("aria-selected", "true");
@@ -128,6 +133,7 @@ for (const width of [320, 390, 1280]) {
       await choose(region.code, region.name);
       const expected = catalog.resorts.filter((resort) => resort.region_code === region.code);
       await expect(list.getByRole("article")).toHaveCount(expected.length);
+      await expect(list.getByRole("link", { name: "詳細を見る", exact: true })).toHaveCount(expected.length);
       await expect(page.getByRole("heading", { name: `${region.name}のスキー場を比較`, exact: true })).toBeVisible();
       if (region.code !== "asahikawa-furano") {
         await expect(list.locator("time, dl")).toHaveCount(0);
@@ -139,7 +145,7 @@ for (const width of [320, 390, 1280]) {
     await page.getByRole("searchbox").fill("きろろ");
     await expect(list.getByRole("article")).toHaveCount(1);
     const home = page.url();
-    await list.getByRole("link").click();
+    await list.getByRole("link", { name: "詳細を見る", exact: true }).click();
     await expect(page.getByRole("heading", { name: "キロロ", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "デモ投稿なし", exact: true })).toBeVisible();
     await expect(page.getByLabel("デモの注意事項")).toContainText("提携や公式情報の連携完了を意味しません");
@@ -165,6 +171,8 @@ for (const width of [320, 390, 1280]) {
     await expect(page).toHaveURL(saved);
     await page.getByRole("tab", { name: "朝のコンディション", exact: true }).click();
     await expect(list.getByText("未取得", { exact: true })).toHaveCount(177);
+    await expect(list.getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true })).toHaveCount(59);
+    await expect(list.getByRole("link", { name: /件のサンプルを見る|デモ詳細を見る/ })).toHaveCount(0);
     await expect(list.getByText("デモ投稿なし", { exact: true })).toHaveCount(49);
     const morningSaved = page.url();
     await cards.last().getByRole("link").click();

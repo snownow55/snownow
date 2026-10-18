@@ -113,7 +113,7 @@ export function DemoExplorer({ catalog, detailName }: { catalog: DemoCatalog; de
               <p className="mt-3 break-words text-xs leading-relaxed">{latest.comment}</p>
             </> : <p className="rounded-lg bg-brand-soft p-3 text-xs text-slate-600">デモ投稿なし</p>}
             {tab === "morning" && !latest && <p className="mt-3 text-xs text-slate-600">デモ投稿なし</p>}
-            <Link href={href} className="ui-primary mt-4 w-full text-xs">{posts.length ? `${posts.length}件のサンプルを見る` : "デモ詳細を見る"}</Link>
+            <Link href={href} className="ui-primary mt-4 w-full text-xs">{tab === "morning" ? "今のゲレンデコンディションを見る" : "詳細を見る"}</Link>
           </article>;
         })}
       </section>
