@@ -1,3 +1,5 @@
+import { RESORT_READINGS } from "../resort-sort.ts";
+
 // Demo-only values: never pass these records to the application post API.
 export const DEMO_DAY = "2026-02-14";
 export const DEMO_DAY_LABEL = "2026年2月14日（日本時間）";
@@ -7,7 +9,7 @@ export type DemoPost = {
   resort: string; createdAt: string; area: string; snowType: string;
   snowfall: string; roughness: string; crowd: string; comment: string;
 };
-export type DemoCatalog = { region: { code: string; name: string }; resorts: DemoResort[]; posts: DemoPost[] };
+export type DemoCatalog = { regions: { code: string; name: string }[]; resorts: DemoResort[]; posts: DemoPost[] };
 
 // Generic fictional changes, deliberately unrelated to any resort's geography
 // or reputation. Scenario assignment follows the reviewed master order.
@@ -35,7 +37,7 @@ const scenarios = [
 ] as const;
 
 export function createDemoPosts(resorts: readonly DemoResort[]): DemoPost[] {
-  return resorts.flatMap((resort) => {
+  return resorts.filter((resort) => resort.region_code === DEMO_REGION_CODE).flatMap((resort) => {
     const index = resort.sort_order - 1;
     const times = ["09:00", "11:30", `14:${String((index % 3) * 10).padStart(2, "0")}`];
     return scenarios[index % scenarios.length].map(([area, snowType, snowfall, roughness, crowd, comment], step) => ({
@@ -45,8 +47,28 @@ export function createDemoPosts(resorts: readonly DemoResort[]): DemoPost[] {
   });
 }
 
-export function demoListUrl(tab = "morning", search = "", sort = "kana"): string {
+export function demoListUrl(tab = "morning", search = "", sort = "kana", region = DEMO_REGION_CODE): string {
   const params = new URLSearchParams({ tab: tab === "live" ? "live" : "morning", sort: sort === "latest" ? "latest" : "kana" });
   if (search) params.set("search", search.slice(0, 200));
+  // Omit the default region to preserve existing /demo links. Never accept a path.
+  if (region !== DEMO_REGION_CODE && /^[a-z0-9-]{1,64}$/.test(region)) params.set("region", region);
   return `/demo?${params}`;
+}
+
+// Empty resorts follow posted ones; equal timestamps and empty pairs use kana.
+export function sortDemoResorts(resorts: readonly DemoResort[], posts: readonly DemoPost[], order: "kana" | "latest"): DemoResort[] {
+  const dates = new Map<string, number>();
+  for (const post of posts) {
+    const date = Date.parse(post.createdAt);
+    if (Number.isFinite(date) && (dates.get(post.resort) ?? -Infinity) < date) dates.set(post.resort, date);
+  }
+  const collator = new Intl.Collator("ja");
+  return [...resorts].sort((a, b) => {
+    if (order === "latest") {
+      const left = dates.get(a.name), right = dates.get(b.name);
+      if (left !== undefined && right !== undefined && left !== right) return right - left;
+      if ((left === undefined) !== (right === undefined)) return left === undefined ? 1 : -1;
+    }
+    return collator.compare(RESORT_READINGS[a.name] ?? a.display_name, RESORT_READINGS[b.name] ?? b.display_name) || collator.compare(a.name, b.name);
+  });
 }

@@ -19,7 +19,8 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
     </header>
     <aside aria-label="デモの注意事項" className="sticky top-0 z-20 border-b border-orange-200 bg-accent-soft px-4 py-3 text-xs leading-relaxed text-slate-800">
       <div className="mx-auto max-w-6xl">
-        <p>これは開発中のサービスを紹介するためのデモです。表示される雪質・降雪・混雑などの情報はすべて架空のサンプルであり、実際のスキー場の状況ではありません。</p>
+        <p>この画面はサービス紹介用のデモです。旭川・富良野エリアの投稿はすべて架空のサンプルであり、実際のスキー場のコンディションを示すものではありません。</p>
+        <p>施設名の掲載は、提携や公式情報の連携完了を意味しません。公式情報は未取得です。</p>
         <p className="mt-1 font-semibold text-accent">デモ想定日：{DEMO_DAY_LABEL} · 表示時刻はすべて日本時間</p>
       </div>
     </aside>

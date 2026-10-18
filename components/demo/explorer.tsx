@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { RESORT_READINGS } from "@/lib/resort-sort";
 import { formatPostDate } from "@/lib/post-date";
-import { demoListUrl, type DemoCatalog, type DemoPost } from "@/lib/demo/data";
+import { DEMO_REGION_CODE, sortDemoResorts, demoListUrl, type DemoCatalog, type DemoPost } from "@/lib/demo/data";
 
 function Metrics({ post }: { post: DemoPost }) {
   return <dl className="grid grid-cols-2 gap-2 text-xs">
@@ -22,18 +22,23 @@ export function DemoExplorer({ catalog, detailName }: { catalog: DemoCatalog; de
   const tab = params.get("tab") === "live" ? "live" : "morning";
   const sort = params.get("sort") === "latest" ? "latest" : "kana";
   const search = (params.get("search") ?? "").slice(0, 200);
-  const home = demoListUrl(tab, search, sort);
-  function update(changes: { tab?: string; search?: string; sort?: string }) {
-    const current = new URLSearchParams(window.location.search);
-    window.history.replaceState(null, "", demoListUrl(changes.tab ?? current.get("tab") ?? "morning", changes.search ?? current.get("search") ?? "", changes.sort ?? current.get("sort") ?? "kana"));
-  }
   const resort = catalog.resorts.find((item) => item.name === detailName);
+  const resolveRegion = (value: string) => value === "all" || catalog.regions.some((item) => item.code === value) ? value : DEMO_REGION_CODE;
+  const regionCode = resolveRegion(params.get("region") ?? resort?.region_code ?? DEMO_REGION_CODE);
+  const selectedRegion = catalog.regions.find((item) => item.code === regionCode);
+  const regionName = selectedRegion?.name ?? "北海道全域";
+  const home = demoListUrl(tab, search, sort, regionCode);
+  function update(changes: { tab?: string; search?: string; sort?: string; region?: string }) {
+    const current = new URLSearchParams(window.location.search);
+    window.history.replaceState(null, "", demoListUrl(changes.tab ?? current.get("tab") ?? "morning", changes.search ?? current.get("search") ?? "", changes.sort ?? current.get("sort") ?? "kana", resolveRegion(changes.region ?? current.get("region") ?? DEMO_REGION_CODE)));
+  }
   if (detailName && resort) {
     const posts = catalog.posts.filter((post) => post.resort === resort.name).sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
     return <main className="mx-auto max-w-2xl px-4 py-6">
       <Link href={home} className="inline-flex min-h-11 items-center text-sm font-semibold text-brand">← デモのスキー場一覧</Link>
       <h1 className="mt-4 text-2xl font-bold break-words">{resort.display_name}</h1>
-      <p className="mt-2 text-sm text-slate-600">{catalog.region.name} · 架空のシナリオ・全{posts.length}件</p>
+      <p className="mt-2 text-sm text-slate-600">{catalog.regions.find((item) => item.code === resort.region_code)?.name} · {posts.length ? `架空のシナリオ・全${posts.length}件` : "デモ投稿なし"}</p>
+      {posts.length ? <>
       <p className="my-4 text-xs leading-relaxed text-slate-600">朝から午後への変化を、古い時刻から順に比較できます。すべてサンプルで、投稿・編集・削除はできません。</p>
       <ol aria-label="デモ投稿の時系列" className="space-y-4">
         {posts.map((post, index) => <li key={post.createdAt}>
@@ -44,22 +49,20 @@ export function DemoExplorer({ catalog, detailName }: { catalog: DemoCatalog; de
           </article>
         </li>)}
       </ol>
+      </> : <div className="ui-card my-5 p-5">
+        <h2 className="font-bold">デモ投稿なし</h2>
+        <p className="mt-2 text-sm leading-relaxed">このスキー場のサンプル投稿は用意していません。実際の投稿状況・営業状況を示すものではありません。</p>
+      </div>}
       <Link href={home} className="ui-secondary mt-6 w-full">一覧に戻って比較する</Link>
     </main>;
   }
 
-  const collator = new Intl.Collator("ja");
   const postsByName = new Map(catalog.resorts.map((item) => [item.name, catalog.posts.filter((post) => post.resort === item.name).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))]));
-  const resorts = [...catalog.resorts].sort((a, b) => {
-    if (tab === "live" && sort === "latest") {
-      const difference = Date.parse(postsByName.get(b.name)![0].createdAt) - Date.parse(postsByName.get(a.name)![0].createdAt);
-      if (difference) return difference;
-    }
-    return collator.compare(RESORT_READINGS[a.name] ?? a.display_name, RESORT_READINGS[b.name] ?? b.display_name) || collator.compare(a.name, b.name);
-  }).filter((item) => [item.name, item.display_name, RESORT_READINGS[item.name] ?? ""].some((name) => normalize(name).includes(normalize(search.trim()))));
+  const resortsInRegion = catalog.resorts.filter((item) => regionCode === "all" || item.region_code === regionCode);
+  const resorts = sortDemoResorts(resortsInRegion, catalog.posts, tab === "live" ? sort : "kana").filter((item) => [item.name, item.display_name, RESORT_READINGS[item.name] ?? ""].some((name) => normalize(name).includes(normalize(search.trim()))));
   return <main className="mx-auto max-w-6xl px-4 py-5 sm:px-6">
-    <h1 className="text-xl font-bold">{catalog.region.name}のスキー場を比較</h1>
-    <p className="mt-2 text-xs text-slate-600">{catalog.resorts.length}スキー場・{catalog.posts.length}件の架空投稿 · 同じ日の変化を体験</p>
+    <h1 className="text-xl font-bold">{regionName}のスキー場を比較</h1>
+    <p className="mt-2 text-xs text-slate-600">北海道{catalog.regions.length}エリア・{catalog.resorts.length}スキー場 · 架空投稿{catalog.posts.length}件は旭川・富良野のみ</p>
     <div role="tablist" aria-label="デモ情報の種類" className="my-4 grid grid-cols-2 gap-2 rounded-xl bg-white p-2">
       {([["morning", "朝のコンディション"], ["live", "ゲレンデの今"]] as const).map(([value, label]) => <button key={value} id={`demo-tab-${value}`} role="tab" aria-selected={tab === value} aria-controls="demo-panel" tabIndex={tab === value ? 0 : -1}
         onClick={() => update({ tab: value })}
@@ -72,10 +75,23 @@ export function DemoExplorer({ catalog, detailName }: { catalog: DemoCatalog; de
     </div>
     <div id="demo-panel" role="tabpanel" aria-labelledby={`demo-tab-${tab}`}>
       <p className="mb-4 text-xs leading-relaxed text-slate-600">{tab === "morning" ? "公式情報の表示イメージです。取得連携は未実装のため、公式の新雪量・積雪量は表示していません。" : "現地投稿の表示イメージです。ログインや閲覧チケットなしで、すべての架空サンプルを比較できます。"}</p>
+      <section aria-label="デモのエリア選択" className="mb-4 rounded-2xl border border-brand/15 bg-white p-2 md:p-4">
+        <div className="md:hidden">
+          <label htmlFor="demo-region" className="sr-only">地域を選択</label>
+          <select id="demo-region" value={regionCode} className="ui-input text-sm font-semibold text-brand" onChange={(event) => update({ region: event.target.value })}>
+            <option value="all">北海道全域（全エリア）</option>
+            {catalog.regions.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
+          </select>
+        </div>
+        <div className="hidden grid-cols-5 gap-2 md:grid">
+          {[{ code: "all", name: "北海道全域" }, ...catalog.regions].map((item) => <button key={item.code} aria-pressed={regionCode === item.code} onClick={() => update({ region: item.code })}
+            className={`ui-tab ${regionCode === item.code ? "ui-tab-active" : "ui-tab-idle"}`}>{item.name}</button>)}
+        </div>
+      </section>
       <label htmlFor="demo-search" className="mb-2 block text-xs font-semibold text-brand">スキー場名で検索</label>
       <input id="demo-search" type="search" value={search} maxLength={200} placeholder="名前・読み仮名" className="ui-input" onChange={(event) => update({ search: event.target.value })} />
       <div className="my-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-slate-600">{resorts.length} / {catalog.resorts.length}スキー場</p>
+        <p className="text-xs text-slate-600">{resorts.length} / {resortsInRegion.length}スキー場</p>
         {tab === "live" ? <fieldset className="flex gap-1 rounded-lg bg-white p-1"><legend className="sr-only">並び順</legend>
           {([["kana", "五十音順"], ["latest", "最新投稿順"]] as const).map(([value, label]) => <button key={value} onClick={() => update({ sort: value })} aria-pressed={sort === value} className={`min-h-11 rounded-lg px-3 text-xs font-semibold ${sort === value ? "bg-brand text-white" : "text-brand"}`}>{label}</button>)}
         </fieldset> : <p className="text-xs text-slate-600">五十音順</p>}
@@ -87,16 +103,17 @@ export function DemoExplorer({ catalog, detailName }: { catalog: DemoCatalog; de
           const latest = posts[0];
           const href = `/demo/resort/${encodeURIComponent(item.name)}?${home.split("?")[1]}`;
           return <article key={item.name} aria-label={item.display_name} className="ui-card min-w-0 p-4">
-            <p className="mb-1 text-[10px] font-semibold text-accent">{tab === "morning" ? "公式情報の枠・取得未実装" : "架空の現地サンプル"}</p>
+            <p className="mb-1 text-[10px] font-semibold text-accent">{tab === "morning" ? "公式情報の枠・取得未実装" : latest ? "架空の現地サンプル" : "施設名の掲載のみ"}</p>
             <h2 className="mb-3 text-base font-bold break-words">{item.display_name}</h2>
             {tab === "morning" ? <dl className="grid grid-cols-2 gap-2 text-xs">
               {["新雪量", "積雪量", "発表日時"].map((label) => <div key={label} className="rounded-lg bg-brand-soft p-2"><dt className="text-[10px] text-slate-600">{label}</dt><dd className="mt-1 font-semibold text-slate-500">未取得</dd></div>)}
-            </dl> : <>
+            </dl> : latest ? <>
               <p className="mb-3 text-xs text-slate-600">最新サンプル：<time dateTime={latest.createdAt}>{formatPostDate(latest.createdAt)}</time></p>
               <Metrics post={latest} />
               <p className="mt-3 break-words text-xs leading-relaxed">{latest.comment}</p>
-            </>}
-            <Link href={href} className="ui-primary mt-4 w-full text-xs">{posts.length}件のサンプルを見る</Link>
+            </> : <p className="rounded-lg bg-brand-soft p-3 text-xs text-slate-600">デモ投稿なし</p>}
+            {tab === "morning" && !latest && <p className="mt-3 text-xs text-slate-600">デモ投稿なし</p>}
+            <Link href={href} className="ui-primary mt-4 w-full text-xs">{posts.length ? `${posts.length}件のサンプルを見る` : "デモ詳細を見る"}</Link>
           </article>;
         })}
       </section>
