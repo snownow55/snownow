@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { OfficialConditions, OfficialConditionsSection } from "@/components/official-conditions";
 import { useSearchParams } from "next/navigation";
 import { RESORT_READINGS } from "@/lib/resort-sort";
 import { formatPostDate } from "@/lib/post-date";
@@ -38,6 +39,7 @@ export function DemoExplorer({ catalog, detailName }: { catalog: DemoCatalog; de
       <Link href={home} className="inline-flex min-h-11 items-center text-sm font-semibold text-brand">← デモのスキー場一覧</Link>
       <h1 className="mt-4 text-2xl font-bold break-words">{resort.display_name}</h1>
       <p className="mt-2 text-sm text-slate-600">{catalog.regions.find((item) => item.code === resort.region_code)?.name} · {posts.length ? `架空のシナリオ・全${posts.length}件` : "デモ投稿なし"}</p>
+      <OfficialConditionsSection />
       {posts.length ? <>
       <p className="my-4 text-xs leading-relaxed text-slate-600">朝から午後への変化を、古い時刻から順に比較できます。すべてサンプルで、投稿・編集・削除はできません。</p>
       <ol aria-label="デモ投稿の時系列" className="space-y-4">
@@ -74,7 +76,7 @@ export function DemoExplorer({ catalog, detailName }: { catalog: DemoCatalog; de
         }} className={`min-h-12 rounded-lg px-2 py-3 text-xs font-bold sm:text-sm ${tab === value ? "bg-brand text-white" : "text-brand hover:bg-brand-soft"}`}>{label}</button>)}
     </div>
     <div id="demo-panel" role="tabpanel" aria-labelledby={`demo-tab-${tab}`}>
-      <p className="mb-4 text-xs leading-relaxed text-slate-600">{tab === "morning" ? "公式情報の表示イメージです。取得連携は未実装のため、公式の新雪量・積雪量は表示していません。" : "現地投稿の表示イメージです。ログインや閲覧チケットなしで、すべての架空サンプルを比較できます。"}</p>
+      <p className="mb-4 text-xs leading-relaxed text-slate-600">{tab === "morning" ? "公式情報の表示イメージです。取得連携は未実装のため、公式の新雪量・雪質・積雪量・気温は未取得です。" : "現地投稿の表示イメージです。ログインや閲覧チケットなしで、すべての架空サンプルを比較できます。"}</p>
       <section aria-label="デモのエリア選択" className="mb-4 rounded-2xl border border-brand/15 bg-white p-2 md:p-4">
         <div className="md:hidden">
           <label htmlFor="demo-region" className="sr-only">地域を選択</label>
@@ -105,9 +107,7 @@ export function DemoExplorer({ catalog, detailName }: { catalog: DemoCatalog; de
           return <article key={item.name} aria-label={item.display_name} className="ui-card min-w-0 p-4">
             <p className="mb-1 text-[10px] font-semibold text-accent">{tab === "morning" ? "公式情報の枠・取得未実装" : latest ? "架空の現地サンプル" : "施設名の掲載のみ"}</p>
             <h2 className="mb-3 text-base font-bold break-words">{item.display_name}</h2>
-            {tab === "morning" ? <dl className="grid grid-cols-2 gap-2 text-xs">
-              {["新雪量", "積雪量", "発表日時"].map((label) => <div key={label} className="rounded-lg bg-brand-soft p-2"><dt className="text-[10px] text-slate-600">{label}</dt><dd className="mt-1 font-semibold text-slate-500">未取得</dd></div>)}
-            </dl> : latest ? <>
+            {tab === "morning" ? <OfficialConditions /> : latest ? <>
               <p className="mb-3 text-xs text-slate-600">最新サンプル：<time dateTime={latest.createdAt}>{formatPostDate(latest.createdAt)}</time></p>
               <Metrics post={latest} />
               <p className="mt-3 break-words text-xs leading-relaxed">{latest.comment}</p>

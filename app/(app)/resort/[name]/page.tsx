@@ -1,6 +1,7 @@
 "use client";
 import { safeHomeReturn } from "@/lib/home-return";
 import { PrototypeNotice, ResortDemoNotice } from "@/components/prototype-notice";
+import { OfficialConditionsSection } from "@/components/official-conditions";
 import { PageShell } from "@/components/ui";
 
 import Link from "next/link";
@@ -124,6 +125,8 @@ function ResortPageContent() {
 
         <PrototypeNotice />
         <ResortDemoNotice name={resort.name} />
+
+        <OfficialConditionsSection />
 
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-semibold">

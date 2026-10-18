@@ -85,7 +85,7 @@ for (const width of [320, 390, 1280]) {
     await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /^ゲレンデ選びに、今の情報を。/);
     await expect(page.locator("article img, article svg")).toHaveCount(0);
     const owns = page.getByRole("article", { name: "スノークルーズオーンズ", exact: true });
-    await expect(owns.locator("dd")).toHaveText(["未取得", "未取得", "未取得"]);
+    await expect(owns.locator("dd")).toHaveText(["未取得", "未取得", "未取得", "未取得"]);
     await page.screenshot({ path: test.info().outputPath("home.png") });
     await owns.getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true }).click();
     const postPath = (await page.getByRole("link", { name: "このスキー場の情報を投稿", exact: false }).getAttribute("href"))!;

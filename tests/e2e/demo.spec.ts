@@ -36,7 +36,7 @@ for (const width of [320, 390, 1280]) {
     await expect(list.locator("h2")).toHaveText(kana.map((r) => r.display_name));
     await expect(page.getByLabel("デモの注意事項")).toContainText("すべて架空のサンプル");
     await expect(page.getByLabel("デモの注意事項")).toContainText("2026年2月14日");
-    await expect(list.getByText("未取得", { exact: true })).toHaveCount(30);
+    await expect(list.getByText("未取得", { exact: true })).toHaveCount(40);
     const morningLinks = list.getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true });
     await expect(morningLinks).toHaveCount(10);
     expect(await morningLinks.evaluateAll((links) => links.every((link) => link.scrollWidth <= link.clientWidth && link.getBoundingClientRect().height >= 44))).toBe(true);
@@ -99,7 +99,8 @@ test("all 59 direct detail URLs show only the original area samples and reject u
     await expect(page.getByRole("article")).toHaveCount(count);
     if (!count) {
       await expect(page.getByRole("heading", { name: "デモ投稿なし", exact: true })).toBeVisible();
-      await expect(page.locator("main time, main dl")).toHaveCount(0);
+      await expect(page.locator("main time")).toHaveCount(0);
+      await expect(page.getByRole("group", { name: "朝の公式情報", exact: true }).locator("dd")).toHaveText(Array(4).fill("未取得"));
     }
     const suffix = resort.region_code === "asahikawa-furano" ? "" : `&region=${resort.region_code}`;
     await expect(page.getByRole("link", { name: "← デモのスキー場一覧", exact: true })).toHaveAttribute("href", "/demo?tab=live&sort=latest&search=demo" + suffix);
@@ -170,7 +171,7 @@ for (const width of [320, 390, 1280]) {
     await page.getByRole("link", { name: "一覧に戻って比較する", exact: true }).click();
     await expect(page).toHaveURL(saved);
     await page.getByRole("tab", { name: "朝のコンディション", exact: true }).click();
-    await expect(list.getByText("未取得", { exact: true })).toHaveCount(177);
+    await expect(list.getByText("未取得", { exact: true })).toHaveCount(236);
     await expect(list.getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true })).toHaveCount(59);
     await expect(list.getByRole("link", { name: /件のサンプルを見る|デモ詳細を見る/ })).toHaveCount(0);
     await expect(list.getByText("デモ投稿なし", { exact: true })).toHaveCount(49);

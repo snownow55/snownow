@@ -33,7 +33,7 @@ for (const width of [320, 390, 1280]) {
     await expect(page.getByRole("tabpanel", { name: "朝のコンディション", exact: false })).toBeVisible();
     const list = page.getByRole("region", { name: "スキー場一覧" });
     await expect(list.getByRole("article")).toHaveCount(13);
-    await expect(list.locator("dd")).toHaveText(Array(39).fill("未取得"));
+    await expect(list.locator("dd")).toHaveText(Array(52).fill("未取得"));
     await expect(list.locator("time")).toHaveCount(0);
     await expect(list.getByRole("link")).toHaveCount(13);
     await expect(list.getByRole("link", { name: "詳細を見る", exact: true })).toHaveCount(0);

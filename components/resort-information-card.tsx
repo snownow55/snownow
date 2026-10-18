@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { OfficialConditions } from "./official-conditions";
 import { resortDetailUrl } from "../lib/home-return";
 import { ResortDemoNotice } from "./prototype-notice";
 import { postUrl, type Resort } from "../lib/resort-master";
@@ -19,11 +20,7 @@ export function MorningResortCard({ resort, returnTo }: { resort: Resort; return
       <p className="mb-1 text-[10px] font-semibold text-brand">公式情報・無料</p>
       <h3 id={`resort-${resort.id}`} className="text-base font-bold leading-snug break-words">{resort.display_name}</h3>
     </div>
-    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-brand/10">
-      {["新雪量", "積雪量", "発表日時"].map((label) => <div key={label} className={`bg-brand-soft px-3 py-2 ${label === "発表日時" ? "col-span-2" : ""}`}>
-        <dt className="text-[10px] text-slate-600">{label}</dt><dd className="mt-1 text-sm font-semibold text-slate-500">未取得</dd>
-      </div>)}
-    </dl>
+    <OfficialConditions />
     <ResortDemoNotice name={resort.name} />
     <Link href={resortDetailUrl(resort.name, returnTo)}
       className="ui-primary mt-3 w-full min-w-0 px-2 text-xs leading-relaxed break-words sm:text-sm">
