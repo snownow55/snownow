@@ -1,5 +1,5 @@
 import { selectRegion } from "./region-picker";
-import { test, expect } from "@playwright/test";
+import { test, expect, type Response } from "@playwright/test";
 
 const fixture = "http://127.0.0.1:54321";
 test.beforeEach(async ({ request, page }) => {
@@ -22,9 +22,10 @@ for (const width of [320, 390, 1280]) {
       const url = new URL(req.url());
       if (url.pathname === "/rest/v1/snow_posts") selections.push(url.searchParams.get("select")!);
     });
-    page.on("response", async (response) => {
+    const captureInitialResponse = async (response: Response) => {
       if (new URL(response.url()).pathname === "/rest/v1/snow_posts") responses.push(await response.text());
-    });
+    };
+    page.on("response", captureInitialResponse);
     await page.goto("/");
     const morning = page.getByRole("tab", { name: "朝のコンディション", exact: false });
     const live = page.getByRole("tab", { name: "ゲレンデの今", exact: false });
@@ -71,7 +72,9 @@ for (const width of [320, 390, 1280]) {
     expect(selections.length).toBe(before);
     expect(selections.length).toBe(13);
     expect(selections.every((select) => select === "created_at")).toBe(true);
-    expect(responses.length).toBe(13);
+    await expect.poll(() => responses.length).toBe(13);
+    // Only inspect the initial reads; later navigation can cancel response bodies.
+    page.off("response", captureInitialResponse);
     for (const response of responses) expect(JSON.parse(response).every((row: object) => Object.keys(row).join(",") === "created_at")).toBe(true);
     const first = list.getByRole("article").first();
     expect((await first.boundingBox())!.height).toBeLessThan(230);

@@ -22,6 +22,9 @@ test("area search matches names and kana without extra post reads or changing re
   await page.goto("/");
   await expect(page.getByRole("region", { name: "スキー場一覧" }).getByRole("article")).toHaveCount(13);
   await expect(page.getByRole("status")).toHaveCount(0);
+  // Morning has no latest-sort loading indicator; wait for its date reads
+  // before checking that search itself makes no additional requests.
+  await expect.poll(() => postReads).toBe(13);
   const initialReads = postReads;
   const search = page.getByRole("searchbox");
   const cards = page.getByRole("region", { name: "スキー場一覧" }).getByRole("article");
