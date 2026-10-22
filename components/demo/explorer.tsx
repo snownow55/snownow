@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { useLocalDemoPosts } from "./local-post-store";
+import { DemoPostForm } from "./post-form";
 import { OfficialConditions, OfficialConditionsSection } from "@/components/official-conditions";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { RESORT_READINGS } from "@/lib/resort-sort";
 import { formatPostDate } from "@/lib/post-date";
 import { DEMO_REGION_CODE, sortDemoResorts, demoListUrl, type DemoCatalog, type DemoPost } from "@/lib/demo/data";
@@ -20,6 +23,14 @@ function normalize(value: string) {
 
 export function DemoExplorer({ catalog, detailName }: { catalog: DemoCatalog; detailName?: string }) {
   const params = useSearchParams();
+  const router = useRouter();
+  const local = useLocalDemoPosts(catalog.resorts);
+  const allPosts = [...catalog.posts, ...local.posts];
+  const [composing, setComposing] = useState(() => params.get("compose") === "1");
+  const isLocal = (post: DemoPost) => "localId" in post;
+  const postDate = (post: DemoPost) => isLocal(post)
+    ? new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(post.createdAt))
+    : formatPostDate(post.createdAt);
   const tab = params.get("tab") === "live" ? "live" : "morning";
   const sort = params.get("sort") === "latest" ? "latest" : "kana";
   const search = (params.get("search") ?? "").slice(0, 200);
@@ -34,18 +45,24 @@ export function DemoExplorer({ catalog, detailName }: { catalog: DemoCatalog; de
     window.history.replaceState(null, "", demoListUrl(changes.tab ?? current.get("tab") ?? "morning", changes.search ?? current.get("search") ?? "", changes.sort ?? current.get("sort") ?? "kana", resolveRegion(changes.region ?? current.get("region") ?? DEMO_REGION_CODE)));
   }
   if (detailName && resort) {
-    const posts = catalog.posts.filter((post) => post.resort === resort.name).sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+    const posts = allPosts.filter((post) => post.resort === resort.name).sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
     return <main className="mx-auto max-w-2xl px-4 py-6">
       <Link href={home} className="inline-flex min-h-11 items-center text-sm font-semibold text-brand">← デモのスキー場一覧</Link>
       <h1 className="mt-4 text-2xl font-bold break-words">{resort.display_name}</h1>
-      <p className="mt-2 text-sm text-slate-600">{catalog.regions.find((item) => item.code === resort.region_code)?.name} · {posts.length ? `架空のシナリオ・全${posts.length}件` : "デモ投稿なし"}</p>
+      <p className="mt-2 text-sm text-slate-600">{catalog.regions.find((item) => item.code === resort.region_code)?.name} · {posts.length ? `デモ投稿・全${posts.length}件` : "デモ投稿なし"}</p>
       <OfficialConditionsSection />
+      {local.error && <p role="alert" className="ui-error">{local.error}</p>}
+      <button className="ui-primary my-3 w-full" onClick={() => setComposing(!composing)}>{composing ? "入力欄を閉じる" : "投稿を体験する"}</button>
+      {composing && <DemoPostForm key={resort.name} resort={resort} resorts={catalog.resorts} save={local.save} blocked={!!local.error} onSaved={() => {
+        setComposing(false);
+        router.push(demoListUrl("live", resort.display_name, "latest", resort.region_code));
+      }} />}
       {posts.length ? <>
-      <p className="my-4 text-xs leading-relaxed text-slate-600">朝から午後への変化を、古い時刻から順に比較できます。すべてサンプルで、投稿・編集・削除はできません。</p>
+      <p className="my-4 text-xs leading-relaxed text-slate-600">固定日の架空サンプルと、このブラウザの体験投稿を古い時刻から順に表示します。編集・削除・外部公開はできません。</p>
       <ol aria-label="デモ投稿の時系列" className="space-y-4">
-        {posts.map((post, index) => <li key={post.createdAt}>
-          <article className="ui-card p-4" aria-label={`サンプル${index + 1}`}>
-            <h2 className="mb-3 font-bold"><time dateTime={post.createdAt}>{formatPostDate(post.createdAt)}</time><span className="ml-2 text-xs text-accent">架空の投稿</span></h2>
+        {posts.map((post, index) => <li key={"localId" in post ? String(post.localId) : post.createdAt}>
+          <article className="ui-card p-4" aria-label={isLocal(post) ? `体験投稿${index + 1}` : `サンプル${index + 1}`}>
+            <h2 className="mb-3 font-bold"><time dateTime={post.createdAt}>{postDate(post)}</time><span className="ml-2 text-xs text-accent">{isLocal(post) ? "体験投稿・このブラウザのみ" : "架空の投稿"}</span></h2>
             <Metrics post={post} />
             <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed">{post.comment}</p>
           </article>
@@ -59,12 +76,13 @@ export function DemoExplorer({ catalog, detailName }: { catalog: DemoCatalog; de
     </main>;
   }
 
-  const postsByName = new Map(catalog.resorts.map((item) => [item.name, catalog.posts.filter((post) => post.resort === item.name).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))]));
+  const postsByName = new Map(catalog.resorts.map((item) => [item.name, allPosts.filter((post) => post.resort === item.name).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))]));
   const resortsInRegion = catalog.resorts.filter((item) => regionCode === "all" || item.region_code === regionCode);
-  const resorts = sortDemoResorts(resortsInRegion, catalog.posts, tab === "live" ? sort : "kana").filter((item) => [item.name, item.display_name, RESORT_READINGS[item.name] ?? ""].some((name) => normalize(name).includes(normalize(search.trim()))));
+  const resorts = sortDemoResorts(resortsInRegion, allPosts, tab === "live" ? sort : "kana").filter((item) => [item.name, item.display_name, RESORT_READINGS[item.name] ?? ""].some((name) => normalize(name).includes(normalize(search.trim()))));
   return <main className="mx-auto max-w-6xl px-4 py-5 sm:px-6">
     <h1 className="text-xl font-bold">{regionName}のスキー場を比較</h1>
     <p className="mt-2 text-xs text-slate-600">北海道{catalog.regions.length}エリア・{catalog.resorts.length}スキー場 · 架空投稿{catalog.posts.length}件は旭川・富良野のみ</p>
+    {local.error && <p role="alert" className="ui-error">{local.error}</p>}
     <div role="tablist" aria-label="デモ情報の種類" className="my-4 grid grid-cols-2 gap-2 rounded-xl bg-white p-2">
       {([["morning", "朝のコンディション"], ["live", "ゲレンデの今"]] as const).map(([value, label]) => <button key={value} id={`demo-tab-${value}`} role="tab" aria-selected={tab === value} aria-controls="demo-panel" tabIndex={tab === value ? 0 : -1}
         onClick={() => update({ tab: value })}
@@ -105,19 +123,20 @@ export function DemoExplorer({ catalog, detailName }: { catalog: DemoCatalog; de
           const latest = posts[0];
           const href = `/demo/resort/${encodeURIComponent(item.name)}?${home.split("?")[1]}`;
           return <article key={item.name} aria-label={item.display_name} className="ui-card min-w-0 p-4">
-            <p className="mb-1 text-[10px] font-semibold text-accent">{tab === "morning" ? "公式情報の枠・取得未実装" : latest ? "架空の現地サンプル" : "施設名の掲載のみ"}</p>
+            <p className="mb-1 text-[10px] font-semibold text-accent">{tab === "morning" ? "公式情報の枠・取得未実装" : latest ? (isLocal(latest) ? "体験投稿・このブラウザのみ" : "架空の現地サンプル") : "施設名の掲載のみ"}</p>
             <h2 className="mb-3 text-base font-bold break-words">{item.display_name}</h2>
             {tab === "morning" ? <OfficialConditions /> : latest ? <>
-              <p className="mb-3 text-xs text-slate-600">最新サンプル：<time dateTime={latest.createdAt}>{formatPostDate(latest.createdAt)}</time></p>
+              <p className="mb-3 text-xs text-slate-600">{isLocal(latest) ? "体験投稿日時：" : "最新サンプル："}<time dateTime={latest.createdAt}>{postDate(latest)}</time></p>
               <Metrics post={latest} />
               <p className="mt-3 break-words text-xs leading-relaxed">{latest.comment}</p>
             </> : <p className="rounded-lg bg-brand-soft p-3 text-xs text-slate-600">デモ投稿なし</p>}
             {tab === "morning" && !latest && <p className="mt-3 text-xs text-slate-600">デモ投稿なし</p>}
             <Link href={href} className="ui-primary mt-4 w-full text-xs">{tab === "morning" ? "今のゲレンデコンディションを見る" : "詳細を見る"}</Link>
+            <Link href={`${href}&compose=1`} className="ui-secondary mt-2 w-full text-xs">投稿を体験する</Link>
           </article>;
         })}
       </section>
     </div>
-    <p className="mt-6 text-xs leading-relaxed text-slate-600">このデモは閲覧専用です。サンプルはアプリ内の固定データで、公式発表・実際のユーザー投稿・有料閲覧権とは接続していません。</p>
+    <p className="mt-6 text-xs leading-relaxed text-slate-600">体験投稿はこのブラウザのlocalStorageにのみ保存され、他の利用者には公開されません。固定サンプル・体験投稿は、公式発表・実際のユーザー投稿・有料閲覧権とは接続していません。</p>
   </main>;
 }

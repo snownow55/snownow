@@ -25,5 +25,12 @@ test("built demo works directly without Supabase configuration or authentication
   await page.goto("/demo/resort/" + encodeURIComponent("キロロ"));
   await expect(page.getByRole("heading", { name: "デモ投稿なし", exact: true })).toBeVisible();
   await expect(page.getByRole("article")).toHaveCount(0);
+  await page.getByRole("button", { name: "投稿を体験する", exact: true }).click();
+  await page.getByRole("textbox").fill("接続設定なしの体験投稿");
+  await page.getByRole("button", { name: "体験投稿を保存する", exact: true }).click();
+  await expect(page.getByRole("article")).toContainText("体験投稿・このブラウザのみ");
+  await expect(page.getByRole("article")).toContainText("接続設定なしの体験投稿");
+  await page.reload();
+  await expect(page.getByRole("article")).toContainText("接続設定なしの体験投稿");
   expect(errors).toEqual([]);
 });

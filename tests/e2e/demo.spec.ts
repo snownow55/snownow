@@ -26,7 +26,7 @@ test.afterEach(async ({ request }) => {
 });
 
 for (const width of [320, 390, 1280]) {
-  test(`independent read-only demo works at ${width}px`, async ({ page }) => {
+  test(`independent demo works at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
     // Clock is deliberately years away: all labels must still use the fixed scenario day.
     await page.clock.setFixedTime(new Date("2030-09-01T00:00:00Z"));
@@ -167,7 +167,7 @@ for (const width of [320, 390, 1280]) {
     }
     await expect(list.getByText("デモ投稿なし", { exact: true })).toHaveCount(49);
     const saved = page.url();
-    await cards.nth(58).getByRole("link").click();
+    await cards.nth(58).getByRole("link", { name: "詳細を見る", exact: true }).click();
     await page.getByRole("link", { name: "一覧に戻って比較する", exact: true }).click();
     await expect(page).toHaveURL(saved);
     await page.getByRole("tab", { name: "朝のコンディション", exact: true }).click();
@@ -176,7 +176,7 @@ for (const width of [320, 390, 1280]) {
     await expect(list.getByRole("link", { name: /件のサンプルを見る|デモ詳細を見る/ })).toHaveCount(0);
     await expect(list.getByText("デモ投稿なし", { exact: true })).toHaveCount(49);
     const morningSaved = page.url();
-    await cards.last().getByRole("link").click();
+    await cards.last().getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true }).click();
     await page.getByRole("link", { name: "一覧に戻って比較する", exact: true }).click();
     await expect(page).toHaveURL(morningSaved);
     await page.screenshot({ path: test.info().outputPath("all-regions.png") });
