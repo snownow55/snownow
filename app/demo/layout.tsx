@@ -13,8 +13,8 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
     <header className="border-b border-brand/15 bg-white px-4 py-3">
       <div className="mx-auto max-w-6xl">
         <Link href="/demo" aria-label="SNOW VIKING デモ一覧"><Brand /></Link>
-        <p className="mt-2 text-sm font-bold text-brand">SNOW VIKING｜スキー場関係者向けデモ</p>
-        <p className="mt-1 text-xs text-slate-600">ゲレンデ選びに、今の情報を。 · ブラウザ内で投稿体験・ログイン／課金不要</p>
+        <p className="mt-2 text-sm font-bold text-brand">スキー場関係者向けデモ</p>
+        <p className="mt-1 text-xs text-slate-600">ブラウザ内で投稿体験・ログイン／課金不要</p>
       </div>
     </header>
     <aside aria-label="デモの注意事項" className="sticky top-0 z-20 border-b border-orange-200 bg-accent-soft px-4 py-3 text-xs leading-relaxed text-slate-800">

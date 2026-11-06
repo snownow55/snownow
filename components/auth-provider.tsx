@@ -65,7 +65,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <div className="min-w-0">
             <Link href="/" aria-label="SNOW VIKING トップページ"><Brand /></Link>
-            <p className="mt-1 text-xs leading-relaxed text-brand">ゲレンデ選びに、今の情報を。</p>
           </div>
           {loading ? (
             <span role="status">確認中…</span>

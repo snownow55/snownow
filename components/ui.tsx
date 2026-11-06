@@ -4,11 +4,10 @@ import mascot from "../public/snow-viking-logo.png";
 
 export function Brand() {
   return (
-    <span className="inline-flex items-center gap-3">
-      <Image src={mascot} alt="SNOW VIKING 公式マスコット" width={48} height={48}
-        sizes="(min-width: 640px) 56px, 48px" preload
-        className="size-12 shrink-0 object-contain sm:size-14" />
-      <span className="ui-brand whitespace-nowrap">SNOW <span className="text-accent">V</span>IKING</span>
+    <span className="inline-block max-w-full align-middle">
+      <Image src={mascot} alt="SNOW VIKING｜ゲレンデ選びに今の情報を"
+        unoptimized preload
+        className="block h-auto w-72 max-w-full sm:w-80" />
     </span>
   );
 }
