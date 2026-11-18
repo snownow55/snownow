@@ -7,7 +7,10 @@ export function toPostInput(post: DemoPost): PostInput {
   return { resort: post.resort, area: post.area, snow_type: post.snowType, snowfall: post.snowfall, roughness: post.roughness, crowd: post.crowd, comment: post.comment };
 }
 export function createLocalPost(input: unknown, resorts: readonly DemoResort[], id: string, now: string): LocalDemoPost {
-  if (!validPost(input) || !resorts.some((resort) => resort.name === input.resort) || !id || !Number.isFinite(Date.parse(now))) throw new Error("Invalid demo post");
+  return checkedPost(input, resorts, id, now, false);
+}
+function checkedPost(input: unknown, resorts: readonly DemoResort[], id: string, now: string, restoring: boolean): LocalDemoPost {
+  if (!validPost(input, restoring) || !resorts.some((resort) => resort.name === input.resort) || !id || !Number.isFinite(Date.parse(now))) throw new Error("Invalid demo post");
   return { localId: id, resort: input.resort, createdAt: now, area: input.area, snowType: input.snow_type, snowfall: input.snowfall, roughness: input.roughness, crowd: input.crowd, comment: input.comment };
 }
 // Treat storage as untrusted input. Never overwrite unreadable/invalid existing data.
@@ -20,7 +23,7 @@ export function readLocalPosts(raw: string | null, resorts: readonly DemoResort[
     if (!value || typeof value !== "object") throw new Error("Invalid demo post");
     const post = value as LocalDemoPost;
     if (typeof post.localId !== "string" || typeof post.createdAt !== "string" || ids.has(post.localId)) throw new Error("Invalid demo ID/date");
-    const checked = createLocalPost(toPostInput(post), resorts, post.localId, post.createdAt);
+    const checked = checkedPost(toPostInput(post), [...resorts, { name: "士別あさひスキー場", display_name: "士別あさひスキー場", region_code: "dohoku", sort_order: 2 }], post.localId, post.createdAt, true);
     ids.add(checked.localId);
     return checked;
   });

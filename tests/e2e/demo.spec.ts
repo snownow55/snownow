@@ -1,3 +1,4 @@
+import { sortDemoResorts } from "../../lib/demo/data";
 import { test, expect } from "@playwright/test";
 import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 import { config } from "../../proxy";
@@ -36,9 +37,9 @@ for (const width of [320, 390, 1280]) {
     await expect(list.locator("h2")).toHaveText(kana.map((r) => r.display_name));
     await expect(page.getByLabel("デモの注意事項")).toContainText("すべて架空のサンプル");
     await expect(page.getByLabel("デモの注意事項")).toContainText("2026年2月14日");
-    await expect(list.getByText("未取得", { exact: true })).toHaveCount(40);
+    await expect(list.getByText("未取得", { exact: true })).toHaveCount(44);
     const morningLinks = list.getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true });
-    await expect(morningLinks).toHaveCount(10);
+    await expect(morningLinks).toHaveCount(11);
     expect(await morningLinks.evaluateAll((links) => links.every((link) => link.scrollWidth <= link.clientWidth && link.getBoundingClientRect().height >= 44))).toBe(true);
     await expect(list.getByRole("link", { name: /件のサンプルを見る|デモ詳細を見る/ })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "最新投稿順", exact: true })).toHaveCount(0);
@@ -47,10 +48,10 @@ for (const width of [320, 390, 1280]) {
     await expect(page.getByText(/接続設定が未完了|ログイン中/)).toHaveCount(0);
     await page.getByRole("tab", { name: "ゲレンデの今", exact: true }).click();
     await expect(list.locator("time")).toHaveCount(10);
-    await expect(list.getByRole("link", { name: "詳細を見る", exact: true })).toHaveCount(10);
+    await expect(list.getByRole("link", { name: "詳細を見る", exact: true })).toHaveCount(11);
     await expect(list).not.toContainText(/たった今|分前|時間前|日前/);
     await page.getByRole("button", { name: "最新投稿順", exact: true }).click();
-    const sorted = [...kana].sort((a, b) => Date.parse(catalog.posts.filter((p) => p.resort === b.name).at(-1)!.createdAt) - Date.parse(catalog.posts.filter((p) => p.resort === a.name).at(-1)!.createdAt));
+    const sorted = sortDemoResorts(kana, catalog.posts, "latest");
     await expect(list.locator("h2")).toHaveText(sorted.map((r) => r.display_name));
     const search = page.getByRole("searchbox");
     await search.fill("ほろ");
@@ -80,7 +81,7 @@ for (const width of [320, 390, 1280]) {
     await expect(list.getByRole("article")).toHaveCount(0);
     await expect(page.locator("main script")).toHaveCount(0);
     await search.fill("");
-    await expect(list.getByRole("article")).toHaveCount(10);
+    await expect(list.getByRole("article")).toHaveCount(11);
     await expect(list.locator("h2")).toHaveText(kana.map((r) => r.display_name));
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
@@ -90,12 +91,12 @@ for (const width of [320, 390, 1280]) {
   });
 }
 
-test("all 59 direct detail URLs show only the original area samples and reject unknown names", async ({ page }) => {
+test("all 63 direct detail URLs show only the original area samples and reject unknown names", async ({ page }) => {
   test.setTimeout(120000);
   for (const resort of catalog.resorts) {
     await page.goto(`/demo/resort/${encodeURIComponent(resort.name)}?tab=live&search=demo&sort=latest&returnTo=https://evil.test`);
     await expect(page.getByRole("heading", { name: resort.display_name, exact: true })).toBeVisible();
-    const count = resort.region_code === "asahikawa-furano" ? 3 : 0;
+    const count = catalog.posts.filter((post) => post.resort === resort.name).length;
     await expect(page.getByRole("article")).toHaveCount(count);
     if (!count) {
       await expect(page.getByRole("heading", { name: "デモ投稿なし", exact: true })).toBeVisible();
@@ -147,7 +148,7 @@ for (const width of [320, 390, 1280]) {
     await expect(list.getByRole("article")).toHaveCount(1);
     const home = page.url();
     await list.getByRole("link", { name: "詳細を見る", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "キロロ", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "キロロスノーワールド", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "デモ投稿なし", exact: true })).toBeVisible();
     await expect(page.getByLabel("デモの注意事項")).toContainText("提携や公式情報の連携完了を意味しません");
     await page.reload();
@@ -160,21 +161,21 @@ for (const width of [320, 390, 1280]) {
     else await expect(picker.getByRole("button", { name: "札幌近郊", exact: true })).toHaveAttribute("aria-pressed", "true");
     await page.getByRole("searchbox").fill("");
     await choose("all", "北海道全域");
-    await expect(list.getByRole("article")).toHaveCount(59);
+    await expect(list.getByRole("article")).toHaveCount(63);
     const cards = list.getByRole("article");
-    for (let i = 0; i < 59; i++) {
+    for (let i = 0; i < 63; i++) {
       await expect(cards.nth(i).locator("time")).toHaveCount(i < 10 ? 1 : 0);
     }
-    await expect(list.getByText("デモ投稿なし", { exact: true })).toHaveCount(49);
+    await expect(list.getByText("デモ投稿なし", { exact: true })).toHaveCount(53);
     const saved = page.url();
     await cards.nth(58).getByRole("link", { name: "詳細を見る", exact: true }).click();
     await page.getByRole("link", { name: "一覧に戻って比較する", exact: true }).click();
     await expect(page).toHaveURL(saved);
     await page.getByRole("tab", { name: "朝のコンディション", exact: true }).click();
-    await expect(list.getByText("未取得", { exact: true })).toHaveCount(236);
-    await expect(list.getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true })).toHaveCount(59);
+    await expect(list.getByText("未取得", { exact: true })).toHaveCount(252);
+    await expect(list.getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true })).toHaveCount(63);
     await expect(list.getByRole("link", { name: /件のサンプルを見る|デモ詳細を見る/ })).toHaveCount(0);
-    await expect(list.getByText("デモ投稿なし", { exact: true })).toHaveCount(49);
+    await expect(list.getByText("デモ投稿なし", { exact: true })).toHaveCount(53);
     const morningSaved = page.url();
     await cards.last().getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true }).click();
     await page.getByRole("link", { name: "一覧に戻って比較する", exact: true }).click();

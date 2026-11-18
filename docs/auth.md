@@ -1,5 +1,7 @@
 # SNOW NOW 認証機能
 
+STEP2の最新84項目の結果は [最終検証報告書](step2-final-verification-report.md)、DB契約・適用前確認・復旧手順は [step2-release-migration.md](step2-release-migration.md) を参照してください。以下のDB手動確認記録は移行前の履歴であり、現在の実装の適用完了を示しません。
+
 ## 実装
 
 - `/signup`: メール・パスワード登録、確認メール再送。メール確認後に利用。
@@ -8,9 +10,9 @@
 - `/reset-password`: 再設定リンクで作成したセッションを検証してパスワード更新後、ログアウト。
 - `/auth/callback`: PKCE code の交換、または signup / recovery の token_hash を検証。外部への next、バックスラッシュ・制御文字などを拒否。recovery は再設定画面へ固定。失敗は固定のログイン画面へ。
 - 共通ヘッダー: ログイン状態とログアウト。SSR の Cookie 共有と proxy によるセッション更新。
-- `/api/posts`: 同一サイト Origin、Supabase Auth の getUser、メール確認、匿名 Auth でないこと、投稿内容を検証。利用者の JWT と publishable key で既存テーブルに INSERT。
+- `/api/posts`: 同一サイト Origin、Supabase Auth の getUser、メール確認、匿名 Auth でないこと、投稿内容を検証。利用者の JWT と publishable key で専用RPCを呼び出します。全施設共通60分間隔をDBで保証し、GETは本人の次回投稿可能時刻のみを返します。
 
-一覧・詳細は公開のまま。投稿フォームの選択肢と既存の書き込み列は維持し、追加の user_id 列は仮定していません。DB・RLS は変更していません。投稿の所有者管理は今回の実装範囲外です。
+一覧・詳細の公開列は維持します。新規conditionと湿雪は廃止し、投稿者はRPCで設定します。今回DBマイグレーションを作成しましたが、実プロジェクトへは未適用です。
 
 ## 必要な環境変数
 
@@ -66,7 +68,7 @@ Vercelのシステム環境変数がPreviewのサーバーに提供されてい�
 
 `email_verified()` は SQL / STABLE / SECURITY DEFINER、空の search_path で、auth.users を SELECT し、本人・メール確認済み・非空のメール・非匿名を判定します。実行権限は anon になく authenticated にあります。これらは設定の確認であり、実際の INSERT 拒否を保証する試験とは区別します。
 
-公開前に残っている検証事項：
+以下は移行前に記録したHosted環境での未確認事項。2026-11-18の隔離環境では対応する認証・権限試験は成功済みだが、実Supabaseでの確認済みとはしない：
 
 - [ ] 実際のメール未認証セッションによる投稿 API・Supabase 直接 INSERT の拒否。通常ログインの失敗は確認済みですが、実セッションの拒否は未検証です。
 - [ ] 未ログインでの Supabase 直接 INSERT の拒否。投稿 API の HTTP 401 は確認済みです。
@@ -94,10 +96,14 @@ Chromium は既定で `/usr/bin/chromium` を使用します。別環境は `PLA
 
 `test:e2e:missing` は直前に環境変数未設定で `npm run build` した成果物を3101で起動し、未設定時の画面表示・認証無効化を検証します。実行中プロセスも未設定にしますが、公開変数はビルド成果物に埋め込まれるためビルド時の設定にも注意してください。
 
-## 今回の検証結果
+## 初期認証実装時の検証結果（履歴）
 
 Node.js 24.19.0 / npm 11.9.0 のクラウド環境で、ユニットテスト4件、ローカル模擬 Supabase を使用するブラウザテスト7件、環境変数なしの本番ビルドでの画面テスト1件が成功しました。`npm run lint` と `npm run build`（TypeScript 検証を含む）も成功しました。
 
 既存の日時表示で発生していた lint エラーは、経過時間の計算をデータ読み込み時に移して解消しました。フォントは同じ Geist を npm パッケージからローカル配信し、ビルド時の Google Fonts 通信依存を除去しています。スマートフォンの390px幅で画面が収まることを検証しています。
 
 利用者のローカル動作テストでは、登録・メール確認・ログイン・投稿・一覧・ログアウト・未ログイン時の投稿画面制限が成功しています。DB 設定の確認と未検証項目は上記の公開前確認事項に記録しています。フィクスチャは画面とアプリの制御を検証するためのもので、実 Supabase のセキュリティ検証を代替しません。
+
+## STEP2最終検証（2026-11-18）
+
+84/84 PASS、build/lint/型チェックPASS、単体33・E2E74・Preview3・設定不足2。Windowsの実GoTrue/PostgREST/JWT連携は架空ユーザーによる隔離試験で成功。Auth標準のauth.uid()は上書きせず定義・所有者を保持。外部メール配送・Hosted設定・Vercelを含む実環境E2Eは未実施。ログアウト後のRefresh Token拒否は成功するが、Access JWTは有効期限までPostgRESTで受理される。詳細は最終検証報告書を参照。

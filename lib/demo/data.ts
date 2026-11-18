@@ -36,8 +36,10 @@ const scenarios = [
   ],
 ] as const;
 
+// Keep the original ten facilities' 30 fictional records unchanged. Newly listed
+// facilities have no fabricated posts, including no newly generated 湿雪.
 export function createDemoPosts(resorts: readonly DemoResort[]): DemoPost[] {
-  return resorts.filter((resort) => resort.region_code === DEMO_REGION_CODE).flatMap((resort) => {
+  return resorts.filter((resort) => resort.region_code === DEMO_REGION_CODE && resort.sort_order <= 10).flatMap((resort) => {
     const index = resort.sort_order - 1;
     const times = ["09:00", "11:30", `14:${String((index % 3) * 10).padStart(2, "0")}`];
     return scenarios[index % scenarios.length].map(([area, snowType, snowfall, roughness, crowd, comment], step) => ({

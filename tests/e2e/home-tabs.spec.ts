@@ -137,7 +137,7 @@ test("keyboard tabs retain filters and sort order; locked posting survives login
 test("free post timestamps use stored Japan time and distinguish loading, absence, and read failures", async ({ page, request }) => {
   await page.clock.setFixedTime(new Date("2026-10-14T12:46:00Z"));
   await request.post(fixture + "/__control", { data: { posts: [{ id: 1, resort: "オーンズ", created_at: "2026-10-14T12:31:00Z",
-    area: "中腹", snow_type: "パウダー", snowfall: "ほぼ無し", roughness: "きれい", crowd: "空いている", condition: null, comment: "クライアントに渡さない現地メモ" }] } });
+    area: "中腹", snow_type: "パウダー", snowfall: "ほぼ無し", roughness: "きれい", crowd: "空いている", comment: "クライアントに渡さない現地メモ" }] } });
   let release!: () => void;
   const pending = new Promise<void>((resolve) => { release = resolve; });
   await page.route(fixture + "/rest/v1/snow_posts?**", async (route) => { await pending; await route.continue(); });

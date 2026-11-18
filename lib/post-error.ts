@@ -2,6 +2,7 @@
 export function postErrorMessage(status: number, payload: unknown): string {
   const error = payload && typeof payload === "object" && !Array.isArray(payload)
     ? (payload as Record<string, unknown>).error : undefined;
+  if (status === 429) return "投稿は全スキー場合わせて1時間に1回までです。残り時間をご確認ください。";
   if (status === 401) return "ログイン状態を確認できません。もう一度ログインしてください。";
   if (status === 403 && error === "Forbidden") {
     return "このページのURLからは投稿を受け付けられません。正規のサイトから開き直してください。";

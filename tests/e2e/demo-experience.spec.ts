@@ -1,3 +1,4 @@
+import { choices } from "../../lib/post-validation";
 import { test, expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { DEMO_STORAGE_KEY } from "../../lib/demo/local-posts";
@@ -23,7 +24,7 @@ for (const width of [320, 390, 1280]) {
     const source = readFileSync("app/(app)/post/page.tsx", "utf8");
     for (const [normalId, demoId] of [["slope-area", "area"], ["snow-type", "snow_type"], ["snowfall", "snowfall"], ["roughness", "roughness"], ["crowd", "crowd"]]) {
       const block = source.split(`id="${normalId}"`)[1].split("</select>")[0];
-      const options = [...block.matchAll(/<option>(.*?)<\/option>/g)].map((match) => match[1]);
+      const options = demoId === "snow_type" ? [...choices.snow_type] : [...block.matchAll(/<option>(.*?)<\/option>/g)].map((match) => match[1]);
       await expect(form.locator(`#demo-${demoId} option`)).toHaveText(options);
       await form.locator(`#demo-${demoId}`).selectOption(options.at(-1)!);
     }

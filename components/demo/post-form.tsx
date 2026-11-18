@@ -1,4 +1,5 @@
 "use client";
+import { choices } from "@/lib/post-validation";
 import { useRef, useState } from "react";
 import { createLocalPost, type LocalDemoPost } from "@/lib/demo/local-posts";
 import type { DemoResort } from "@/lib/demo/data";
@@ -7,7 +8,7 @@ import type { DemoResort } from "@/lib/demo/data";
 // authoritative; this demo intentionally imports no auth, DB or network client.
 export const DEMO_FIELDS = [
   ["area", "ゲレンデ内の位置", ["山頂・上部", "中腹", "山麓・下部", "全体"]],
-  ["snow_type", "雪質", ["パウダー", "圧雪", "硬めの圧雪", "アイスバーン", "湿雪", "ザラメ", "シャバ雪・べちゃ雪", "みぞれ・雨"]],
+  ["snow_type", "雪質", choices.snow_type],
   ["snowfall", "営業開始後の降雪", ["ほぼ無し", "うっすら積もった", "そこそこ積もった", "かなり積もった", "分からない"]],
   ["roughness", "ゲレンデの荒れ具合", ["きれい", "少し荒れている", "かなり荒れている", "ボコボコ"]],
   ["crowd", "混雑", ["空いている", "普通", "混んでいる"]],

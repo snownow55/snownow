@@ -5,7 +5,7 @@ const deployment = "https://snow-viking-deployment-fixture.vercel.app";
 const branch = "https://snow-viking-git-auth-fixture.vercel.app";
 const next = "/post?" + new URLSearchParams({ region: "asahikawa-furano", resort: "ほろたちスキー場", from: "detail" });
 const body = { resort: "ほろたちスキー場", area: "山頂・上部", snow_type: "パウダー", snowfall: "ほぼ無し",
-  roughness: "きれい", crowd: "空いている", condition: null, comment: "Previewの投稿確認" };
+  roughness: "きれい", crowd: "空いている", comment: "Previewの投稿確認" };
 
 test.beforeEach(async ({ page, request }) => {
   await request.post(fixture + "/__control", { data: { reset: true } });
@@ -60,17 +60,19 @@ for (const width of [320, 390, 1280]) {
     failure = null;
     for (const origin of [deployment, branch]) {
       allowedOrigin = origin;
-      const response = page.waitForResponse((r) => new URL(r.url()).pathname === "/api/posts");
+      const response = page.waitForResponse((r) => new URL(r.url()).pathname === "/api/posts" && r.request().method() === "POST");
       await page.getByRole("button", { name: "投稿する", exact: true }).click();
       expect((await response).status()).toBe(201);
       await expect(page).toHaveURL(/\/?\?region=asahikawa-furano$/);
+      // Separate valid Preview-origin cases by a simulated full hour.
+      await request.post(fixture + "/__control", { data: { lastSuccess: Date.now() - 3600001 } });
       await page.goto(next);
       await expect(page.getByRole("heading", { name: "ほろたちスキー場のコンディションを投稿", exact: true })).toBeVisible();
     }
     const stats = await (await request.get(fixture + "/__stats")).json();
     expect(stats.inserts).toBe(2);
     expect(stats.lastInsert.resort).toBe(body.resort);
-    expect(stats.lastInsert.condition).toBeNull();
+    expect(stats.lastInsert.condition).toBeUndefined();
     expect(stats.posts.slice(0, 2).map((post: { resort: string }) => post.resort)).toEqual(["オーンズ", "キロロ"]);
   });
 }

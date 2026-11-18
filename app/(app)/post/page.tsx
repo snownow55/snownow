@@ -1,10 +1,12 @@
 "use client";
 import { PageShell } from "@/components/ui";
 
-import { Suspense, useState, useTransition } from "react";
+import { Suspense, useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/auth-provider";
+import { choices } from "@/lib/post-validation";
+import { localPostingDeadline, postingStatus, remainingPostTime } from "@/lib/posting-limit";
 import { canPost } from "@/lib/auth-policy";
 import { useResortMaster } from "@/lib/use-resort-master";
 import { postUrl, regionUrl } from "@/lib/resort-master";
@@ -38,8 +40,29 @@ function PostForm() {
   const [crowd, setCrowd] = useState("空いている");
   const [comment, setComment] = useState("");
 
+  const [remaining, setRemaining] = useState(0);
+  const [checkedUser, setCheckedUser] = useState<string | null>(null);
+  const limitReady = checkedUser === user?.id && canPost(user);
+  const [limitError, setLimitError] = useState("");
+  const [limitRefresh, setLimitRefresh] = useState(0);
+  const [deadline, setDeadline] = useState(0);
+  useEffect(() => {
+    let active = true;
+    if (!canPost(user)) return () => { active = false; };
+    fetch("/api/posts", { cache: "no-store" }).then(async (response) => {
+      const status = response.ok ? postingStatus(await response.json()) : null;
+      if (!status) throw new Error("Status unavailable");
+      if (active) { setDeadline(localPostingDeadline(status.retryAfterSeconds)); setRemaining(status.retryAfterSeconds); setCheckedUser(user?.id ?? null); setLimitError(""); }
+    }).catch(() => { if (active) { setCheckedUser(null); setLimitError("投稿可能時刻を確認できませんでした。再確認してください。"); } });
+    return () => { active = false; };
+  }, [user, limitRefresh]);
+  useEffect(() => {
+    const timer = setInterval(() => setRemaining(Math.max(0, Math.ceil((deadline - Date.now()) / 1000))), 1000);
+    return () => clearInterval(timer);
+  }, [deadline]);
+
   async function handleSubmit() {
-    if (!canPost(user) || submitting || selectionPending || master.loading || master.error || !selectedResort || selectionError) return;
+    if (!limitReady || remaining > 0 || !canPost(user) || submitting || selectionPending || master.loading || master.error || !selectedResort || selectionError) return;
     setSubmitting(true);
     setSubmitError("");
     try {
@@ -53,12 +76,15 @@ function PostForm() {
           snowfall,
           roughness,
           crowd,
-          condition: null,
           comment,
         }),
       });
       if (!response.ok) {
         const payload: unknown = await response.json().catch(() => null);
+        if (response.status === 429) {
+          const status = postingStatus(payload);
+          if (status) { setDeadline(localPostingDeadline(status.retryAfterSeconds)); setRemaining(status.retryAfterSeconds); }
+        }
         setSubmitError(postErrorMessage(response.status, payload));
         return;
       }
@@ -186,14 +212,7 @@ function PostForm() {
               onChange={(e) => setSnowType(e.target.value)}
               className="ui-input"
             >
-              <option>パウダー</option>
-              <option>圧雪</option>
-              <option>硬めの圧雪</option>
-              <option>アイスバーン</option>
-              <option>湿雪</option>
-              <option>ザラメ</option>
-              <option>シャバ雪・べちゃ雪</option>
-              <option>みぞれ・雨</option>
+              {choices.snow_type.map((value) => <option key={value}>{value}</option>)}
             </select>
           </div>
 
@@ -264,13 +283,15 @@ function PostForm() {
             />
           </div>
 
+          <p role="status" className="my-3 text-sm">{remaining > 0 ? `次の投稿まであと${remainingPostTime(remaining)}` : limitReady ? "投稿は全スキー場合わせて1時間に1回までです。" : "投稿可能時刻を確認しています…"}</p>
+          {limitError && <p role="alert" className="ui-error">{limitError}<button type="button" className="ui-secondary ml-2" onClick={() => { setCheckedUser(null); setLimitRefresh((n) => n + 1); }}>再確認</button></p>}
           {submitError && (
             <p role="alert" className="ui-error">
               {submitError}
             </p>
           )}
           <button
-            disabled={submitting || selectionPending || master.loading || !!master.error || !selectedResort || !!selectionError}
+            disabled={!limitReady || remaining > 0 || submitting || selectionPending || master.loading || !!master.error || !selectedResort || !!selectionError}
             onClick={handleSubmit}
             className="ui-primary w-full"
           >

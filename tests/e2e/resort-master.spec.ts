@@ -15,7 +15,7 @@ const manifest = readFileSync("docs/resort-master-review/59-resorts-review.csv",
     return { name, display_name, region_code, sort_order: Number(order) };
   });
 const body = { resort: "さっぽろばんけい", area: "山頂・上部", snow_type: "パウダー",
-  snowfall: "ほぼ無し", roughness: "きれい", crowd: "空いている", condition: null, comment: "新規スキー場の投稿" };
+  snowfall: "ほぼ無し", roughness: "きれい", crowd: "空いている", comment: "新規スキー場の投稿" };
 
 async function login(page: Page, next = "/post") {
   await page.goto("/login?next=" + encodeURIComponent(next));
@@ -110,7 +110,7 @@ test("morning cards have one canonical detail link and retain downstream posting
   expect(target.searchParams.get("from")).toBe("detail");
 });
 
-test("region to detail to fixed form submits the selected resort with a null rating", async ({ page }) => {
+test("region to detail to fixed form submits the selected resort without a rating field", async ({ page }) => {
   await login(page, "/");
   await selectRegion(page, "旭川・富良野");
   await page.getByRole("region", { name: "スキー場一覧" }).getByRole("article", { name: "カムイスキーリンクス", exact: true }).getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true }).click();
@@ -126,7 +126,7 @@ test("region to detail to fixed form submits the selected resort with a null rat
   const sent = page.waitForRequest((req) => new URL(req.url()).pathname === "/api/posts" && req.method() === "POST");
   await page.getByRole("button", { name: "投稿する", exact: true }).click();
   expect((await sent).postDataJSON()).toEqual({ resort: "カムイスキーリンクス", area: "中腹", snow_type: "圧雪",
-    snowfall: "うっすら積もった", roughness: "少し荒れている", crowd: "普通", condition: null,
+    snowfall: "うっすら積もった", roughness: "少し荒れている", crowd: "普通",
     comment: "投稿先を固定したフォームの確認" });
   await expect(page).toHaveURL(/\/\?region=asahikawa-furano$/);
   const card = page.getByRole("region", { name: "スキー場一覧" }).getByRole("article", { name: "カムイスキーリンクス", exact: true });
@@ -380,7 +380,7 @@ for (const [name, displayName, region, label] of [
   ["オーンズ", "スノークルーズオーンズ", "sapporo", "札幌近郊"],
   ["カムイスキーリンクス", "カムイスキーリンクス", "asahikawa-furano", "旭川・富良野"],
 ]) {
-  test(`top posting link for ${name} survives login and saves null without changing old ratings`, async ({ page, request }) => {
+  test(`top posting link for ${name} survives login and omits condition without changing old posts`, async ({ page, request }) => {
     const before = await (await request.get(fixture + "/__stats")).json();
     await page.goto("/");
     await selectRegion(page, label);
@@ -401,7 +401,7 @@ for (const [name, displayName, region, label] of [
     const after = await (await request.get(fixture + "/__stats")).json();
     expect(after.inserts).toBe(1);
     expect(after.lastInsert.resort).toBe(name);
-    expect(after.lastInsert.condition).toBeNull();
+    expect(after.lastInsert.condition).toBeUndefined();
     expect(after.posts.slice(0, 2)).toEqual(before.posts);
     await card.getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true }).click();
     await expect(page.getByRole("heading", { name: displayName, level: 1, exact: true })).toBeVisible();
@@ -411,13 +411,13 @@ for (const [name, displayName, region, label] of [
   });
 }
 
-test("API normalizes an omitted rating to null and refuses non-null ratings without inserts", async ({ page, request }) => {
+test("API omits condition and refuses supplied ratings without inserts", async ({ page, request }) => {
   await login(page);
   const withoutRating = Object.fromEntries(Object.entries(body).filter(([key]) => key !== "condition"));
   expect(await post(page, withoutRating)).toBe(201);
   const stats = await (await request.get(fixture + "/__stats")).json();
-  expect(stats.lastInsert.condition).toBeNull();
-  for (const rating of ["★★★★★", "", 1, false, {}]) {
+  expect(stats.lastInsert.condition).toBeUndefined();
+  for (const rating of [null, "★★★★★", "", 1, false, {}]) {
     expect(await post(page, { ...body, condition: rating })).toBe(400);
   }
   expect((await (await request.get(fixture + "/__stats")).json()).inserts).toBe(1);

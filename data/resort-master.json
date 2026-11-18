@@ -1,0 +1,429 @@
+{
+  "regions": [
+    {
+      "code": "sapporo",
+      "name": "札幌近郊",
+      "sort_order": 1
+    },
+    {
+      "code": "sorachi",
+      "name": "空知",
+      "sort_order": 2
+    },
+    {
+      "code": "asahikawa-furano",
+      "name": "旭川・富良野",
+      "sort_order": 3
+    },
+    {
+      "code": "dohoku",
+      "name": "道北",
+      "sort_order": 4
+    },
+    {
+      "code": "doo",
+      "name": "道央",
+      "sort_order": 5
+    },
+    {
+      "code": "niseko-rusutsu",
+      "name": "ニセコ・ルスツ",
+      "sort_order": 6
+    },
+    {
+      "code": "iburi",
+      "name": "胆振",
+      "sort_order": 7
+    },
+    {
+      "code": "donan",
+      "name": "道南",
+      "sort_order": 8
+    },
+    {
+      "code": "doto",
+      "name": "道東",
+      "sort_order": 9
+    }
+  ],
+  "resorts": [
+    {
+      "name": "さっぽろばんけい",
+      "display_name": "さっぽろばんけいスキー場",
+      "region_code": "sapporo",
+      "sort_order": 1
+    },
+    {
+      "name": "サッポロテイネ",
+      "display_name": "サッポロテイネ",
+      "region_code": "sapporo",
+      "sort_order": 2
+    },
+    {
+      "name": "Fu'sスノーエリア",
+      "display_name": "Fu'sスノーエリア",
+      "region_code": "sapporo",
+      "sort_order": 3
+    },
+    {
+      "name": "札幌国際スキー場",
+      "display_name": "札幌国際スキー場",
+      "region_code": "sapporo",
+      "sort_order": 4
+    },
+    {
+      "name": "キロロ",
+      "display_name": "キロロスノーワールド",
+      "region_code": "sapporo",
+      "sort_order": 5
+    },
+    {
+      "name": "オーンズ",
+      "display_name": "スノークルーズオーンズ",
+      "region_code": "sapporo",
+      "sort_order": 6
+    },
+    {
+      "name": "朝里川温泉スキー場",
+      "display_name": "朝里川温泉スキー場",
+      "region_code": "sapporo",
+      "sort_order": 7
+    },
+    {
+      "name": "小樽天狗山スキー場",
+      "display_name": "小樽天狗山スキー場",
+      "region_code": "sapporo",
+      "sort_order": 8
+    },
+    {
+      "name": "コンサドーレ仁木スキーパーク",
+      "display_name": "コンサドーレ仁木スキーパーク",
+      "region_code": "sapporo",
+      "sort_order": 9
+    },
+    {
+      "name": "北長沼スキー場",
+      "display_name": "北長沼スキー場",
+      "region_code": "sapporo",
+      "sort_order": 10
+    },
+    {
+      "name": "マウントレースイ",
+      "display_name": "マウントレースイスキー場",
+      "region_code": "sapporo",
+      "sort_order": 11
+    },
+    {
+      "name": "中山峠スキー場",
+      "display_name": "中山峠スキー場",
+      "region_code": "sapporo",
+      "sort_order": 12
+    },
+    {
+      "name": "札幌藻岩山スキー場",
+      "display_name": "札幌藻岩山スキー場",
+      "region_code": "sapporo",
+      "sort_order": 13
+    },
+    {
+      "name": "北海道グリーンランド",
+      "display_name": "北海道グリーンランドスキー場",
+      "region_code": "sorachi",
+      "sort_order": 1
+    },
+    {
+      "name": "萩の山スキー場",
+      "display_name": "萩の山市民スキー場",
+      "region_code": "sorachi",
+      "sort_order": 2
+    },
+    {
+      "name": "桂沢国設スキー場",
+      "display_name": "桂沢国設スキー場",
+      "region_code": "sorachi",
+      "sort_order": 3
+    },
+    {
+      "name": "美唄国設スキー場",
+      "display_name": "美唄国設スキー場",
+      "region_code": "sorachi",
+      "sort_order": 4
+    },
+    {
+      "name": "かもい岳スキー場",
+      "display_name": "かもい岳国際スキー場",
+      "region_code": "sorachi",
+      "sort_order": 5
+    },
+    {
+      "name": "ASHIMOI KANKO 高穂スキー場",
+      "display_name": "ASHIMOI KANKO 高穂スキー場",
+      "region_code": "sorachi",
+      "sort_order": 6
+    },
+    {
+      "name": "サンタプレゼントパーク",
+      "display_name": "サンタプレゼントパーク",
+      "region_code": "asahikawa-furano",
+      "sort_order": 1
+    },
+    {
+      "name": "カムイスキーリンクス",
+      "display_name": "カムイスキーリンクス",
+      "region_code": "asahikawa-furano",
+      "sort_order": 2
+    },
+    {
+      "name": "キャンモアスキービレッジ",
+      "display_name": "キャンモアスキービレッジ",
+      "region_code": "asahikawa-furano",
+      "sort_order": 3
+    },
+    {
+      "name": "ぴっぷスキー場",
+      "display_name": "ぴっぷスキー場",
+      "region_code": "asahikawa-furano",
+      "sort_order": 4
+    },
+    {
+      "name": "旭岳ロープウェイ",
+      "display_name": "旭岳ロープウェイ",
+      "region_code": "asahikawa-furano",
+      "sort_order": 5
+    },
+    {
+      "name": "大雪山黒岳スキー場",
+      "display_name": "大雪山黒岳スキー場",
+      "region_code": "asahikawa-furano",
+      "sort_order": 6
+    },
+    {
+      "name": "富良野スキー場",
+      "display_name": "富良野スキー場",
+      "region_code": "asahikawa-furano",
+      "sort_order": 7
+    },
+    {
+      "name": "国設南ふらのスキー場",
+      "display_name": "国設南ふらのスキー場",
+      "region_code": "asahikawa-furano",
+      "sort_order": 8
+    },
+    {
+      "name": "和寒東山スキー場",
+      "display_name": "和寒東山スキー場",
+      "region_code": "asahikawa-furano",
+      "sort_order": 9
+    },
+    {
+      "name": "ほろたちスキー場",
+      "display_name": "ほろたちスキー場",
+      "region_code": "asahikawa-furano",
+      "sort_order": 10
+    },
+    {
+      "name": "士別日向スキー場",
+      "display_name": "士別日向スキー場",
+      "region_code": "dohoku",
+      "sort_order": 1
+    },
+    {
+      "name": "名寄ピヤシリスキー場",
+      "display_name": "名寄ピヤシリスキー場",
+      "region_code": "dohoku",
+      "sort_order": 3
+    },
+    {
+      "name": "稚内市こまどりスキー場",
+      "display_name": "稚内市こまどりスキー場",
+      "region_code": "dohoku",
+      "sort_order": 4
+    },
+    {
+      "name": "豊富温泉スキー場",
+      "display_name": "豊富温泉スキー場",
+      "region_code": "dohoku",
+      "sort_order": 5
+    },
+    {
+      "name": "音威富士スキー場",
+      "display_name": "音威富士スキー場",
+      "region_code": "dohoku",
+      "sort_order": 6
+    },
+    {
+      "name": "星野リゾート トマム",
+      "display_name": "星野リゾート トマム",
+      "region_code": "doo",
+      "sort_order": 1
+    },
+    {
+      "name": "サホロリゾートスキー場",
+      "display_name": "サホロリゾートスキー場",
+      "region_code": "doo",
+      "sort_order": 2
+    },
+    {
+      "name": "日高国際スキー場",
+      "display_name": "日高国際スキー場",
+      "region_code": "doo",
+      "sort_order": 3
+    },
+    {
+      "name": "ルスツリゾート",
+      "display_name": "ルスツリゾート",
+      "region_code": "niseko-rusutsu",
+      "sort_order": 1
+    },
+    {
+      "name": "ニセコHANAZONOリゾート",
+      "display_name": "ニセコHANAZONOリゾート",
+      "region_code": "niseko-rusutsu",
+      "sort_order": 2
+    },
+    {
+      "name": "ニセコグラン・ヒラフ",
+      "display_name": "ニセコ東急 グラン・ヒラフ",
+      "region_code": "niseko-rusutsu",
+      "sort_order": 3
+    },
+    {
+      "name": "ニセコアンヌプリ国際スキー場",
+      "display_name": "ニセコアンヌプリ国際スキー場",
+      "region_code": "niseko-rusutsu",
+      "sort_order": 4
+    },
+    {
+      "name": "ニセコビレッジスキーリゾート",
+      "display_name": "ニセコビレッジスキーリゾート",
+      "region_code": "niseko-rusutsu",
+      "sort_order": 5
+    },
+    {
+      "name": "ニセコモイワスキーリゾート",
+      "display_name": "ニセコモイワスキーリゾート",
+      "region_code": "niseko-rusutsu",
+      "sort_order": 6
+    },
+    {
+      "name": "サンライバスキー場",
+      "display_name": "カルルス温泉サンライバスキー場",
+      "region_code": "iburi",
+      "sort_order": 1
+    },
+    {
+      "name": "オロフレスキー場",
+      "display_name": "オロフレスキー場",
+      "region_code": "iburi",
+      "sort_order": 2
+    },
+    {
+      "name": "今金町ピリカスキー場",
+      "display_name": "今金町ピリカスキー場",
+      "region_code": "donan",
+      "sort_order": 1
+    },
+    {
+      "name": "グリーンピア大沼スキー場",
+      "display_name": "グリーンピア大沼スキー場",
+      "region_code": "donan",
+      "sort_order": 2
+    },
+    {
+      "name": "函館七飯スノーパーク",
+      "display_name": "函館七飯スノーパーク",
+      "region_code": "donan",
+      "sort_order": 3
+    },
+    {
+      "name": "知内町営スキー場",
+      "display_name": "知内町営スキー場",
+      "region_code": "donan",
+      "sort_order": 4
+    },
+    {
+      "name": "えんがるロックバレー",
+      "display_name": "えんがるロックバレー",
+      "region_code": "doto",
+      "sort_order": 1
+    },
+    {
+      "name": "ノーザンアークリゾート",
+      "display_name": "ノーザンアークリゾートスキー場",
+      "region_code": "doto",
+      "sort_order": 2
+    },
+    {
+      "name": "網走レークビュースキー場",
+      "display_name": "網走レークビュースキー場",
+      "region_code": "doto",
+      "sort_order": 3
+    },
+    {
+      "name": "北見若松市民スキー場",
+      "display_name": "北見若松市民スキー場",
+      "region_code": "doto",
+      "sort_order": 4
+    },
+    {
+      "name": "国設阿寒湖畔スキー場 ウタラ",
+      "display_name": "国設阿寒湖畔スキー場 ウタラ",
+      "region_code": "doto",
+      "sort_order": 5
+    },
+    {
+      "name": "ぬかびら源泉郷スキー場",
+      "display_name": "ぬかびら源泉郷スキー場",
+      "region_code": "doto",
+      "sort_order": 6
+    },
+    {
+      "name": "斜里町ウナベツスキー場",
+      "display_name": "斜里町ウナベツスキー場",
+      "region_code": "doto",
+      "sort_order": 7
+    },
+    {
+      "name": "紋別市営大山スキー場",
+      "display_name": "紋別市営大山スキー場",
+      "region_code": "doto",
+      "sort_order": 8
+    },
+    {
+      "name": "湧別町五鹿山スキー場",
+      "display_name": "湧別町五鹿山スキー場",
+      "region_code": "doto",
+      "sort_order": 9
+    },
+    {
+      "name": "北見市留辺蘂町八方台スキー場",
+      "display_name": "北見市留辺蘂町八方台スキー場",
+      "region_code": "doto",
+      "sort_order": 10
+    },
+    {
+      "name": "メムロスキー場",
+      "display_name": "メムロスキー場",
+      "region_code": "doo",
+      "sort_order": 11
+    },
+    {
+      "name": "美幌町リリー山スキー場",
+      "display_name": "美幌町リリー山スキー場",
+      "region_code": "doto",
+      "sort_order": 12
+    },
+    {
+      "name": "ダイナスティスキーリゾート",
+      "display_name": "ダイナスティスキーリゾート",
+      "region_code": "sapporo",
+      "sort_order": 14
+    },
+    {
+      "name": "暑寒別岳スキー場",
+      "display_name": "暑寒別岳スキー場",
+      "region_code": "asahikawa-furano",
+      "sort_order": 11
+    }
+  ]
+}

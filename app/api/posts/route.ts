@@ -1,7 +1,8 @@
 import { serverSupabase } from "@/lib/supabase-server";
 import { canPost } from "@/lib/auth-policy";
 import { isAllowedPostOrigin } from "@/lib/site-origin";
-import { validPost } from "@/lib/post-validation";
+import { postingStatus } from "@/lib/posting-limit";
+import { transitionalPost, validPost } from "@/lib/post-validation";
 import { findResort } from "@/lib/resort-master";
 
 // Bound the actual UTF-8 bytes while reading, without trusting Content-Length.
@@ -57,6 +58,7 @@ export async function POST(request: Request) {
   } catch {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
+  post = transitionalPost(post, process.env.SNOW_LEGACY_POSTS_UNTIL);
   if (!validPost(post))
     return Response.json({ error: "Invalid post" }, { status: 400 });
   try {
@@ -66,10 +68,29 @@ export async function POST(request: Request) {
   } catch {
     return Response.json({ error: "Resort information unavailable" }, { status: 503 });
   }
-  // Uses the user's JWT and publishable key; existing RLS remains in force.
-  // The database supplies user_id; new posts never carry a star rating.
-  const { error: insertError } = await client.from("snow_posts").insert({ ...post, condition: null });
-  if (insertError)
-    return Response.json({ error: "Post failed" }, { status: 400 });
-  return Response.json({ ok: true }, { status: 201 });
+  const { data: result, error: rpcError } = await client.rpc("submit_snow_post", { payload: post });
+  if (rpcError) {
+    if (rpcError.code === "22023" || rpcError.code === "23514") return Response.json({ error: "Invalid post" }, { status: 400 });
+    if (rpcError.code === "42501") return Response.json({ error: "Posting forbidden" }, { status: 403 });
+    return Response.json({ error: "Post failed" }, { status: 503 });
+  }
+  const status = postingStatus(result);
+  if (!status) return Response.json({ error: "Post failed" }, { status: 503 });
+  if (!status.allowed) return Response.json({ error: "Post rate limited", ...status }, {
+    status: 429, headers: { "Retry-After": String(status.retryAfterSeconds), "Cache-Control": "no-store" },
+  });
+  return Response.json({ ok: true, ...status }, { status: 201 });
+}
+
+// Only the authenticated user's own posting window; never cache across users.
+export async function GET() {
+  const client = await serverSupabase();
+  if (!client) return Response.json({ error: "Authentication unavailable" }, { status: 503 });
+  const { data: auth, error } = await client.auth.getUser();
+  if (error || !auth.user) return Response.json({ error: "Authentication required" }, { status: 401 });
+  if (!canPost(auth.user)) return Response.json({ error: "Email verification required" }, { status: 403 });
+  const { data, error: rpcError } = await client.rpc("posting_status");
+  const status = rpcError ? null : postingStatus(data);
+  return status ? Response.json(status, { headers: { "Cache-Control": "no-store" } })
+    : Response.json({ error: "Posting status unavailable" }, { status: 503 });
 }

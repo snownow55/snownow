@@ -64,6 +64,9 @@ const session = (kind = "verified") => ({
         : user,
 });
 let inserts = 0;
+let lastSuccess = 0;
+let logoutFails = false;
+let signupSession = false;
 http
   .createServer(async (req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "http://127.0.0.1:3100");
@@ -94,8 +97,15 @@ http
         resorts = structuredClone(initialResorts);
         posts = structuredClone(initialPosts);
         inserts = 0;
+        lastSuccess = 0;
+        logoutFails = false;
+        signupSession = false;
         failedTables = new Set();
       }
+      if (body.signupSession !== undefined) signupSession = body.signupSession;
+      if (body.logoutFails !== undefined) logoutFails = body.logoutFails;
+      if (body.lastSuccess !== undefined) lastSuccess = body.lastSuccess;
+      if (body.resorts) resorts = structuredClone(body.resorts);
       if (body.failTables) failedTables = new Set(body.failTables);
       if (body.posts) posts = structuredClone(body.posts);
       if (body.inactive) resorts = resorts.map((r) => ({ ...r, is_active: !body.inactive.includes(r.name) }));
@@ -128,7 +138,7 @@ http
     if (url.pathname === "/rest/v1/regions" && req.method === "GET") return sendRows(regions);
     if (url.pathname === "/rest/v1/resorts" && req.method === "GET") return sendRows(resorts);
     if (url.pathname === "/auth/v1/signup")
-      return respond({ ...user, email_confirmed_at: undefined });
+      return respond(signupSession ? session() : { ...user, email_confirmed_at: undefined });
     if (
       url.pathname === "/auth/v1/recover" ||
       url.pathname === "/auth/v1/resend"
@@ -174,21 +184,24 @@ http
             : user,
       );
     }
-    if (url.pathname === "/auth/v1/logout") return respond({});
+    if (url.pathname === "/auth/v1/logout") return logoutFails ? respond({ msg: "Fixture logout failed" }, 500) : respond({});
+    if (url.pathname === "/rest/v1/rpc/posting_status" || url.pathname === "/rest/v1/rpc/submit_snow_post") {
+      const jwt = req.headers.authorization?.split(" ")[1];
+      const kind = jwt?.split(".").length === 3 ? JSON.parse(Buffer.from(jwt.split(".")[1], "base64url").toString()).kind : null;
+      if (kind !== "verified") return respond({ code: "42501", message: "Fixture RPC auth rejection" }, 403);
+      const next = lastSuccess + 3600000;
+      const seconds = Math.max(0, Math.ceil((next - Date.now()) / 1000));
+      const result = { allowed: seconds === 0, serverTime: new Date().toISOString(), nextAllowedAt: lastSuccess ? new Date(next).toISOString() : null, retryAfterSeconds: seconds };
+      if (url.pathname.endsWith("posting_status") || seconds > 0) return respond(result);
+      const payload = body.payload;
+      if (!payload || payload.snow_type === "湿雪" || Object.hasOwn(payload, "condition") || !resorts.some((r) => r.name === payload.resort && r.is_active)) return respond({ code: "22023", message: "Invalid post" }, 400);
+      inserts++;
+      lastSuccess = Date.now();
+      posts.push({ ...payload, id: posts.length + 1, created_at: new Date(lastSuccess).toISOString() });
+      return respond({ allowed: true, serverTime: new Date().toISOString(), nextAllowedAt: new Date(lastSuccess + 3600000).toISOString(), retryAfterSeconds: 3600 });
+    }
     if (url.pathname === "/rest/v1/snow_posts") {
-      if (req.method === "POST") {
-        const activeResort = resorts.find((r) => r.name === body.resort && r.is_active);
-        const jwt = req.headers.authorization?.split(" ")[1];
-        const kind = jwt?.split(".").length === 3
-          ? JSON.parse(Buffer.from(jwt.split(".")[1], "base64url").toString()).kind : null;
-        if (!activeResort || kind !== "verified") return respond({ message: "Fixture RLS rejection" }, 403);
-        const ratings = ["★★★★★", "★★★★☆", "★★★☆☆", "★★☆☆☆", "★☆☆☆☆"];
-        if (body.condition != null && !ratings.includes(body.condition))
-          return respond({ message: "Fixture condition check rejection" }, 400);
-        inserts++;
-        posts.push({ ...body, condition: body.condition ?? null, id: posts.length + 1, created_at: new Date().toISOString() });
-        return respond([], 201);
-      }
+      if (req.method !== "GET") return respond({ code: "42501", message: "Direct write denied" }, 403);
       return sendRows(posts);
     }
     respond({ msg: "Unknown fixture route" }, 404);

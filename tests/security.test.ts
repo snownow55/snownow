@@ -43,7 +43,6 @@ const post = {
   snowfall: "ほぼ無し",
   roughness: "きれい",
   crowd: "空いている",
-  condition: null,
   comment: "",
 };
 test("post validation preserves choices and rejects tampering", () => {
@@ -63,11 +62,11 @@ test("post validation preserves choices and rejects tampering", () => {
     assert.equal(validPost(invalid), false);
 });
 
-test("new posts allow an omitted or null rating, reject ratings, and still require every other field", () => {
+test("new posts omit the removed rating and reject any supplied rating field", () => {
   const withoutRating = Object.fromEntries(Object.entries(post).filter(([key]) => key !== "condition"));
   assert.equal(validPost(withoutRating), true);
   assert.equal(validPost(post), true);
-  for (const condition of ["★★★★★", "★★★★☆", "", 0, false, {}, [], undefined]) {
+  for (const condition of [null, "★★★★★", "★★★★☆", "", 0, false, {}, [], undefined]) {
     assert.equal(validPost({ ...withoutRating, condition }), false);
   }
   for (const field of Object.keys(withoutRating)) {

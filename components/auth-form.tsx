@@ -53,7 +53,8 @@ export function AuthForm({ mode }: { mode: Mode }) {
         });
         if (error) throw error;
         if (data.session) {
-          await supabase.auth.signOut();
+          const { error: signOutError } = await supabase.auth.signOut();
+          if (signOutError) throw signOutError;
           setError(
             "メール確認が必須になっていません。運営にお問い合わせください。",
           );
@@ -87,7 +88,13 @@ export function AuthForm({ mode }: { mode: Mode }) {
           password,
         });
         if (updateError) throw updateError;
-        await supabase.auth.signOut();
+        const { error: signOutError } = await supabase.auth.signOut();
+        if (signOutError) {
+          setPassword("");
+          setConfirmation("");
+          setError("パスワードは変更済みですが、ログアウトに失敗しました。もう一度ログアウトしてください。次回ログインには新しいパスワードをご利用ください。");
+          return;
+        }
         router.replace("/login?notice=password-updated");
         router.refresh();
       }
