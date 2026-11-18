@@ -6,6 +6,7 @@ $SnowUtf8 = [Text.UTF8Encoding]::new($false)
 $SnowRecords = [Collections.Generic.List[object]]::new()
 $SnowMissing = [Collections.Generic.List[string]]::new()
 $SnowDestination = $null
+$SnowZipMissing = $null
 try {
     if (-not $env:LOCALAPPDATA) { throw 'WINDOWS_ENVIRONMENT_REQUIRED' }
     $SnowOutput = [IO.Path]::GetFullPath($OutputParent)
@@ -101,10 +102,20 @@ try {
     [IO.Compression.ZipFile]::CreateFromDirectory($SnowContent,$SnowZip)
     $SnowArchive = [IO.Compression.ZipFile]::OpenRead($SnowZip)
     try {
+        # .NET Framework may store backslashes; GetEntry itself does not normalize.
+        $SnowZipEntries = [Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal)
+        foreach ($SnowCandidate in $SnowArchive.Entries) {
+            if ($SnowCandidate.FullName.EndsWith('/') -or $SnowCandidate.FullName.EndsWith('\')) { continue }
+            $SnowKey = $SnowCandidate.FullName.Replace('\','/')
+            if ($SnowKey -match '^/|:|[\x00-\x1f]' -or @($SnowKey.Split('/') | Where-Object { $_ -in @('','..','.') }).Count -gt 0) { throw 'UNSAFE_ZIP_ENTRY' }
+            if ($SnowZipEntries.ContainsKey($SnowKey)) { throw 'DUPLICATE_NORMALIZED_ZIP_ENTRY' }
+            $SnowZipEntries.Add($SnowKey,$SnowCandidate)
+        }
+        if ($SnowZipEntries.Count -ne @(Get-ChildItem -LiteralPath $SnowContent -Recurse -File).Count) { throw 'ZIP_FILE_COUNT_MISMATCH' }
         foreach ($SnowFile in @(Get-ChildItem -LiteralPath $SnowContent -Recurse -File)) {
             $SnowRelative = $SnowFile.FullName.Substring($SnowContent.Length+1) -replace '\\','/'
-            $SnowEntry = $SnowArchive.GetEntry($SnowRelative)
-            if (-not $SnowEntry) { throw 'ZIP_ENTRY_MISSING' }
+            if (-not $SnowZipEntries.ContainsKey($SnowRelative)) { $SnowZipMissing=$SnowRelative; throw 'ZIP_ENTRY_MISSING' }
+            $SnowEntry = $SnowZipEntries[$SnowRelative]
             $SnowStream = $SnowEntry.Open()
             $SnowHashAlgorithm = [Security.Cryptography.SHA256]::Create()
             try { $SnowHash = ([BitConverter]::ToString($SnowHashAlgorithm.ComputeHash($SnowStream))).Replace('-','') }
@@ -131,6 +142,6 @@ try {
     $SnowSummary | ConvertTo-Json -Depth 5
 } catch {
     $SnowCode = if ($_.Exception.Message -cmatch '^[A-Z0-9_]+$') { $_.Exception.Message } else { 'LOCAL_EVIDENCE_OPERATION_FAILED' }
-    [ordered]@{status='EVIDENCE_PRESERVATION_STOPPED';code=$SnowCode;tests_rerun=$false;database_connection_performed=$false;source_changed_or_deleted=$false} | ConvertTo-Json
+    [ordered]@{status='EVIDENCE_PRESERVATION_STOPPED';code=$SnowCode;missing_zip_entry=$SnowZipMissing;exception_type=$_.Exception.GetType().FullName;error_id=$_.FullyQualifiedErrorId;line=$_.InvocationInfo.ScriptLineNumber;tests_rerun=$false;database_connection_performed=$false;source_changed_or_deleted=$false} | ConvertTo-Json
     throw 'EVIDENCE_PRESERVATION_STOPPED'
 }

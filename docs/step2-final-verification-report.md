@@ -163,3 +163,10 @@ Windows最終スクリプト・JSONはWindows保全スクリプトで原本の�
 |082|追加検証|移行中間・末尾失敗時の構造・行・権限等の保全|PASS|
 |083|追加検証|実GoTrue・PostgREST・JWT連携（架空ユーザー）|PASS|
 |084|追加検証|CLI履歴・失敗時非記録・正常適用・再適用|PASS|
+
+
+## 2026-11-18 最終準備の追補
+
+84項目は再実行せず、その成功を保持。Windowsのコミット取り込み・109ファイル一致・STEP3未追跡保持と、証跡13ファイル/ZIP15エントリ（69,919 bytes）のSHA照合成功をユーザー確認済み。
+今回の追加修正・隔離復旧試験・CLIヘルプ確認は [最終適用計画](step2-hosted-application-plan.md) と [追加検証結果](step2-preparation-followup-results.json) を参照。
+架空バックアップでのアプリ限定復旧は成功したが、実バックアップ由来の復旧SQLの隔離リハーサル、Hosted権限/最新差分/CLI dry-run、Vercel統合は未実施。実適用は引き続きNO-GO。

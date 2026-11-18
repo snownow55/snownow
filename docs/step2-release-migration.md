@@ -1,6 +1,6 @@
 # STEP2：開発DB適用・復旧手順
 
-更新：2026-11-18（日本時間）。[最終検証報告書](step2-final-verification-report.md) / [84項目CSV](step2-verification-results.csv)。
+更新：2026-11-18（日本時間）。最新の実行順・停止条件は [Hosted最終適用計画](step2-hosted-application-plan.md) を優先。[最終検証報告書](step2-final-verification-report.md) / [84項目CSV](step2-verification-results.csv)。
 
 ## 現在の承認範囲
 
@@ -33,7 +33,7 @@ Hostedの管理権限制約・全面復元、実SMTP配送、gateway/key設定�
 
 `scripts/Preserve-Step2Evidence.ps1`をWindowsで実行する。ネットワーク/DB/Git操作はしない。元ファイルを変更せず、最終スクリプト・各段階の結果JSON・80チェックの状態/スクリプトを許可リストだけで新しい保護フォルダーへコピーし、元/コピーのSHA-256とZIP読戻しを確認する。
 DBダンプ、roles/schema-reference SQL、private.log、.env、Docker設定/ボリュームはコピーしない。最終JSON/スクリプトに秘密らしい実値があれば中断し、内容を表示しない。報告は件数・一致・段階名だけ。
-Windowsの原本はCodexに無いので、その出力を受け取るまでは「保全スクリプト準備済み」であり「Windows保全完了」ではない。既存退避ZIPは最新成功版を収録していない場合がある。
+Windowsユーザーの成功結果を確認済み：109ファイル一致、証跡13ファイル/ZIP15エントリ、69,919 bytes、全SHA照合一致。ZIP区切り文字13件の差を吸収して保全完了。既存の成功記録/ZIPを保持し、今回のスクリプト修正のために保全を再実行しない。新しい追加修正は別途保全する。
 
 ## 接続承認後の最小事前確認
 
@@ -50,10 +50,10 @@ Windows版の導入/認証は未確認。承認後に公式配布物のSHAと`--
 ```powershell
 $SnowDevRef = Read-Host '照合済みsnownow-devのProject Reference'
 supabase --version
-supabase migration list --remote $SnowDevRef
-supabase db push --remote $SnowDevRef --skip-vault --dry-run
+supabase migration list "--remote=$SnowDevRef"
+supabase db push "--remote=$SnowDevRef" --skip-vault --dry-run
 # 全条件・適用承認が揃った後だけ
-supabase db push --remote $SnowDevRef --skip-vault --yes
+supabase db push "--remote=$SnowDevRef" --skip-vault --yes
 ```
 
 このProject Reference指定によるHosted認証は未検証。隔離で成功したのはループバックDB URL指定である。CLIログイン/実DB接続が管理用ロール作成等を行う場合があるため、読み取り専用調査扱いで事前実行しない。接続承認にはこの影響も含める。
@@ -121,4 +121,4 @@ psql -X --set=ON_ERROR_STOP=1 --single-transaction \
 
 ## 未実施を維持するもの
 
-本書更新は実Supabaseへの接続・適用を許可/実行するものではない。Hostedアプリ限定切戻し3ファイルの作成/実行可否、実Authメール配送、Vercelを含む統合確認は未完。全DB復元や管理権限拡大で代替しない。
+本書更新は実Supabaseへの接続・適用を許可/実行するものではない。アプリ限定前処理/lockdownと限定TOC生成器を作成し架空PG17.11で追加検証済み。実バックアップ由来の3ファイルのレビュー/隔離検証、Hostedの権限、実Authメール配送、Vercelを含む統合確認は未完。全DB復元や管理権限拡大で代替しない。
