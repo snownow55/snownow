@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { OfficialCondition } from "@/lib/official-conditions";
 import { OfficialConditions } from "./official-conditions";
 import { resortDetailUrl } from "../lib/home-return";
-import { ResortDemoNotice } from "./prototype-notice";
 import { postUrl, type Resort } from "../lib/resort-master";
 import { formatPostAge, formatPostDate } from "../lib/post-date";
 
@@ -49,7 +48,6 @@ export function LockedResortCard({ resort, latest, returnTo }: { resort: Resort;
       <svg aria-hidden="true" className="relative size-3.5 shrink-0 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="5" y="10" width="14" height="11" rx="3" /><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" /></svg>
       <p className="relative text-[11px] font-medium">投稿内容はロック中</p>
     </div>
-    <ResortDemoNotice name={resort.name} />
     <ResortActions resort={resort} returnTo={returnTo} />
   </article>;
 }

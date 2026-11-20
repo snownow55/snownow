@@ -1,6 +1,6 @@
 "use client";
 import { safeHomeReturn } from "@/lib/home-return";
-import { PrototypeNotice, ResortDemoNotice } from "@/components/prototype-notice";
+import { PrototypeNotice } from "@/components/prototype-notice";
 import { OfficialConditionsSection } from "@/components/official-conditions";
 import { PageShell } from "@/components/ui";
 
@@ -124,7 +124,6 @@ function ResortPageContent() {
         </header>
 
         <PrototypeNotice />
-        <ResortDemoNotice name={resort.name} />
 
         <OfficialConditionsSection />
 

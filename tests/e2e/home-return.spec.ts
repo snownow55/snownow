@@ -22,13 +22,13 @@ for (const width of [320, 390, 1280]) {
       const list = page.getByRole("region", { name: "スキー場一覧" });
       const card = list.getByRole("article", { name: "ほろたちスキー場", exact: true });
       await expect(list.getByRole("article")).toHaveCount(1);
-      await expect(card.getByLabel("デモ情報の注意")).toContainText("実際の現地コンディションを示す情報ではありません");
+      await expect(card.getByLabel("デモ情報の注意")).toHaveCount(0);
       await expect(page.getByLabel("開発版について")).toContainText("未実装");
       if (tab === "morning") await expect(page.getByRole("button", { name: "最新投稿順", exact: true })).toHaveCount(0);
       else await expect(page.getByRole("button", { name: "最新投稿順", exact: true })).toHaveAttribute("aria-pressed", "true");
       await card.getByRole("link", { name: tab === "morning" ? "今のゲレンデコンディションを見る" : "詳細を見る", exact: true }).click();
       await expect(page.getByRole("heading", { name: "ほろたちスキー場", exact: true })).toBeVisible();
-      await expect(page.getByLabel("デモ情報の注意")).toBeVisible();
+      await expect(page.getByLabel("デモ情報の注意")).toHaveCount(0);
       await expect(page.getByLabel("開発版について")).toContainText("詳細ページ・APIの投稿情報は現在公開");
       const post = new URL((await page.getByRole("link", { name: "このスキー場の情報を投稿", exact: false }).getAttribute("href"))!, page.url());
       expect(post.searchParams.get("resort")).toBe("ほろたちスキー場");
