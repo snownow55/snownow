@@ -21,7 +21,6 @@ export function MorningResortCard({ resort, returnTo }: { resort: Resort; return
       <h3 id={`resort-${resort.id}`} className="text-base font-bold leading-snug break-words">{resort.display_name}</h3>
     </div>
     <OfficialConditions />
-    <ResortDemoNotice name={resort.name} />
     <Link href={resortDetailUrl(resort.name, returnTo)}
       className="ui-primary mt-3 w-full min-w-0 px-2 text-xs leading-relaxed break-words sm:text-sm">
       今のゲレンデコンディションを見る
