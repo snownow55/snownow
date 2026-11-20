@@ -11,8 +11,9 @@ import { useOfficialConditions } from "@/lib/use-official-conditions";
 import { useRegionPreferences } from "@/lib/use-region-preferences";
 import { prioritizeRegions } from "@/lib/region-preferences";
 import { RESORT_READINGS, sortResorts, type ResortSort } from "@/lib/resort-sort";
-import { loadResortLatestDates, LATEST_DATES_ERROR } from "@/lib/resort-latest-dates";
-import { LockedResortCard, MorningResortCard } from "@/components/resort-information-card";
+import { loadResortPostSummaries, POSTS_ERROR, type ResortPostSummary } from "@/lib/resort-post-summary";
+import { ResortLiveCard } from "@/components/resort-live-card";
+import { MorningResortCard } from "@/components/resort-information-card";
 
 function searchText(value: string) {
   return value.normalize("NFKC").toLocaleLowerCase("ja").replace(/[ァ-ヶ]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0x60));
@@ -50,14 +51,15 @@ function Home() {
   const postKey = JSON.stringify(resortsInRegion.map((resort) => resort.name));
   const [postState, setPostState] = useState<{
     key: string;
-    dates: Map<string, string>;
+    summaries: Map<string, ResortPostSummary>;
     error: string;
   } | null>(null);
   // A new region never uses the previous region's dates for sorting.
   const currentPosts = postState?.key === postKey ? postState : null;
   const postsLoading = resortsInRegion.length > 0 && !currentPosts;
   const postsError = currentPosts?.error ?? "";
-  const latestDates = currentPosts?.dates ?? new Map<string, string>();
+  const summaries = currentPosts?.summaries ?? new Map<string, ResortPostSummary>();
+  const latestDates = new Map([...summaries].flatMap(([name, summary]) => summary.latest ? [[name, summary.latest.created_at] as const] : []));
   const official = useOfficialConditions(tab === "morning");
   const resorts = tab === "morning" ? resortsInRegion.filter((resort) => resort.name !== "和寒東山スキー場") : resortsInRegion;
   const groups = orderedRegions.filter((region) => allRegions || region.code === regionCode).map((region) => ({
@@ -69,12 +71,12 @@ function Home() {
   useEffect(() => {
     if (tab !== "live" || !resortsInRegion.length) return;
     const controller = new AbortController();
-    loadResortLatestDates(supabase, resortsInRegion, controller.signal).then(
-      (dates) => {
-        if (!controller.signal.aborted) setPostState({ key: postKey, dates, error: "" });
+    loadResortPostSummaries(supabase, resortsInRegion, controller.signal).then(
+      (summaries) => {
+        if (!controller.signal.aborted) setPostState({ key: postKey, summaries, error: "" });
       },
       () => {
-        if (!controller.signal.aborted) setPostState({ key: postKey, dates: new Map(), error: LATEST_DATES_ERROR });
+        if (!controller.signal.aborted) setPostState({ key: postKey, summaries: new Map(), error: POSTS_ERROR });
       },
     );
     return () => controller.abort();
@@ -106,9 +108,9 @@ function Home() {
         <PrototypeNotice />
         <div id="information-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} tabIndex={0}>
           {tab === "live" && <aside aria-label="現地情報の閲覧案内" className="mb-3 rounded-xl border border-orange-200 bg-accent-soft px-3 py-2">
-            <p className="text-xs leading-relaxed">投稿でチケットを獲得、または月額500円で見放題 <span className="text-slate-500">（提供予定・未実装）</span></p>
+            <p className="text-xs leading-relaxed">先行無料公開中。現地の投稿情報はログインなしで閲覧できます。</p>
             <Link href="/access" className="inline-flex min-h-11 items-center text-xs font-bold text-brand underline underline-offset-4">閲覧方法を見る</Link>
-            <p className="text-[10px] leading-relaxed text-slate-600">ロックは固定の見本です。閲覧制御は未実装で、既存の詳細ページ・APIは公開されたままです。</p>
+            <p className="text-[10px] leading-relaxed text-slate-600">投稿にはメール確認済みアカウントでのログインが必要です。</p>
           </aside>}
 
           <Link href="/settings" className="mb-3 inline-flex min-h-11 items-center text-sm text-brand underline">登録エリアを設定</Link>
@@ -160,7 +162,7 @@ function Home() {
             <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-bold tracking-tight">{allRegions ? "全エリアのスキー場" : selectedRegion ? `${selectedRegion.name}のスキー場` : "スキー場"}</h2>
-                {(allRegions || selectedRegion) && <p className="mt-1 text-xs text-slate-500">{visibleResorts.length} / {resorts.length}スキー場 · {tab === "morning" ? "公式情報（取得準備中）" : "ユーザー現地投稿（閲覧準備中）"}</p>}
+                {(allRegions || selectedRegion) && <p className="mt-1 text-xs text-slate-500">{visibleResorts.length} / {resorts.length}スキー場 · {tab === "morning" ? "公式情報（取得準備中）" : "ユーザー現地投稿（無料公開）"}</p>}
               </div>
               {master.data && (allRegions || selectedRegion) && tab === "live" && (
                 <fieldset className="rounded-xl border border-slate-200 bg-white p-1">
@@ -192,14 +194,13 @@ function Home() {
                 <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {visible.map((resort) => tab === "morning"
                     ? <MorningResortCard key={resort.name} resort={resort} returnTo={returnTo} condition={official.rows.find((row) => row.resort_id === resort.id)} now={official.now} />
-                    : <LockedResortCard key={resort.name} resort={resort} returnTo={returnTo} latest={postsLoading ? { state: "loading" }
-                      : postsError ? { state: "error" } : { state: "ready", createdAt: latestDates.get(resort.name) ?? null }} />)}
+                    : <ResortLiveCard key={resort.name} resort={resort} returnTo={returnTo} summary={summaries.get(resort.name)} postsLoading={postsLoading} postsError={postsError} />)}
                 </div>
               </section>;
             })}
           </section>
         </div>
-        <p className="mt-8 text-center text-[11px] leading-relaxed text-slate-500">公式発表とユーザー現地投稿は別の情報です。閲覧制限は未実装で、既存の投稿詳細ページ・APIは引き続き公開されています。</p>
+        <p className="mt-8 text-center text-[11px] leading-relaxed text-slate-500">公式発表とユーザー現地投稿は別の情報です。現地の投稿情報は無料で閲覧できます。</p>
       </div>
     </PageShell>
   );

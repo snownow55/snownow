@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { resortDetailUrl } from "../lib/home-return";
 import { ResortMemo } from "./resort-memo";
 import { formatPostDate } from "../lib/post-date";
 import { postUrl, type Resort } from "../lib/resort-master";
@@ -22,10 +23,10 @@ function getTimeAgo(createdAt: string) {
 }
 
 
-// Reserved for a future server-authorized view. Never pass this data to a locked
-// card. This presentation component does not implement access control.
-export function ResortLiveCard({ resort, summary, postsLoading = false, postsError = "" }: {
-  resort: Resort; summary?: ResortPostSummary; postsLoading?: boolean; postsError?: string;
+// Public posts are freely readable during the early release.
+// Future paid access must add server authorization before passing data here.
+export function ResortLiveCard({ resort, summary, postsLoading = false, postsError = "", returnTo }: {
+  resort: Resort; summary?: ResortPostSummary; postsLoading?: boolean; postsError?: string; returnTo?: string;
 }) {
   const latestPost = summary?.latest;
   return (
@@ -52,7 +53,7 @@ export function ResortLiveCard({ resort, summary, postsLoading = false, postsErr
       </dl>
       {latestPost && <ResortMemo key={latestPost.id} area={latestPost.area} comment={latestPost.comment} />}
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <Link href={`/resort/${encodeURIComponent(resort.name)}`}
+        <Link href={resortDetailUrl(resort.name, returnTo)}
           className="ui-secondary gap-1 text-xs">
           詳細を見る <span aria-hidden="true">↗</span>
         </Link>
