@@ -59,15 +59,8 @@ CREATE TABLE snownow_private.snow_posts (
  comment text NOT NULL CHECK(snownow_private.utf16_length(comment)<=1000),
  created_at timestamptz NOT NULL DEFAULT clock_timestamp()
 );
-DO $$ BEGIN
- IF to_regclass('snownow_private.legacy_authenticated_snow_posts') IS NOT NULL THEN
-   -- Development adoption only: stays in the SAME project; never exports users/posts.
-   INSERT INTO snownow_private.snow_posts(id,user_id,resort,area,snow_type,snowfall,roughness,crowd,comment,created_at)
-   OVERRIDING SYSTEM VALUE
-   SELECT id,user_id,resort,area,snow_type,snowfall,roughness,crowd,comment,created_at
-   FROM snownow_private.legacy_authenticated_snow_posts;
- END IF;
-END $$;
+-- Pre-release MVP: start with no posts or cooldown history.
+-- Legacy test posts stay in the private archive; do not copy them into this table.
 SELECT pg_catalog.setval(pg_catalog.pg_get_serial_sequence('snownow_private.snow_posts','id'),
  coalesce((SELECT max(id) FROM snownow_private.snow_posts),1),
  EXISTS(SELECT 1 FROM snownow_private.snow_posts));

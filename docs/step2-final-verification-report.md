@@ -1,3 +1,21 @@
+# 2026-11-19 MVP方針更新（現在の判定）
+
+本書の下部は旧SQLの84項目の検証報告を歴史的証跡として保持している。旧投稿を引き継ぐ件数や旧SHAは新版の期待値ではない。
+
+- 旧投稿コピーのみ省略。旧表の非公開退避・63施設・Auth/RLS/RPCは変更なし。
+- 新版SQL 26,166 bytes、SHA-256 `41126DCF8E0BFB0B1D583F2F52A05E9D34607B6A459A37E80006AF1167424B5D`。
+- 限定した追加10確認：MVP_EMPTY_START_DELTA_PASSED。[結果](step2-mvp-empty-start-results.json)。旧84項目と既存復旧リハーサルの再実行なし。
+- 新投稿/公開view/post_limitsは0件。最初の新投稿はid=1で成功し、その投稿後に60分制限開始。
+- Hosted①はpostgresの権限メタデータ確認PASS。CLI経路は③に残す。
+- ②はMVP最小構成へ縮小。適用直前のバックアップ1回のみ予定。③は未実施。
+- 実DB変更・削除・push・deploy・STEP3は未実施。今回の修正は未コミット。
+
+現在の運用は[移行手順](step2-release-migration.md)と[進捗](step2-hosted-remaining-work.md)を優先する。
+
+---
+
+## 旧版SQLの検証報告（内容を保持）
+
 # STEP2 最終検証報告書
 
 作成・更新日：2026-11-18（日本時間）。ユーザーは隔離環境での84項目完了を承認済み。
