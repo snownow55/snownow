@@ -7,6 +7,8 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useResortMaster } from "@/lib/use-resort-master";
+import { useRegionPreferences } from "@/lib/use-region-preferences";
+import { prioritizeRegions } from "@/lib/region-preferences";
 import { RESORT_READINGS, sortResorts, type ResortSort } from "@/lib/resort-sort";
 import { loadResortLatestDates, LATEST_DATES_ERROR } from "@/lib/resort-latest-dates";
 import { LockedResortCard, MorningResortCard } from "@/components/resort-information-card";
@@ -18,11 +20,14 @@ function searchText(value: string) {
 function Home() {
   const searchParams = useSearchParams();
   const master = useResortMaster();
-  const regionCode = searchParams.get("region") ?? master.data?.regions[0]?.code;
+  const preferences = useRegionPreferences();
+  const orderedRegions = prioritizeRegions(master.data?.regions ?? [], preferences.codes);
+  const regionCode = searchParams.get("region") ?? "all";
+  const allRegions = regionCode === "all";
   const selectedRegion = master.data?.regions.find((region) => region.code === regionCode);
   const resortsInRegion = useMemo(() => master.data?.resorts.filter(
-    (resort) => resort.region_code === selectedRegion?.code && resort.is_active,
-  ) ?? [], [master.data, selectedRegion?.code]);
+    (resort) => (allRegions || resort.region_code === selectedRegion?.code) && resort.is_active,
+  ) ?? [], [master.data, selectedRegion?.code, allRegions]);
   const tab = searchParams.get("tab") === "live" ? "live" : "morning";
   const search = searchParams.get("search") ?? "";
   const sortOrder: ResortSort = searchParams.get("sort") === "latest" ? "latest" : "kana";
@@ -36,7 +41,7 @@ function Home() {
     window.history.replaceState(null, "", `/?${params.toString()}`);
   }
   const returnTo = `/?${new URLSearchParams({
-    region: selectedRegion?.code ?? "",
+    region: regionCode,
     tab,
     sort: sortOrder,
     ...(search ? { search } : {}),
@@ -52,12 +57,15 @@ function Home() {
   const postsLoading = resortsInRegion.length > 0 && !currentPosts;
   const postsError = currentPosts?.error ?? "";
   const latestDates = currentPosts?.dates ?? new Map<string, string>();
-  const resorts = sortResorts(resortsInRegion, tab === "morning" ? "kana" : sortOrder, latestDates);
+  const resorts = resortsInRegion;
+  const groups = orderedRegions.filter((region) => allRegions || region.code === regionCode).map((region) => ({
+    region, resorts: sortResorts(resorts.filter((resort) => resort.region_code === region.code), tab === "morning" ? "kana" : sortOrder, latestDates),
+  }));
   const query = searchText(search.trim());
   const visibleResorts = resorts.filter((resort) => [resort.name, resort.display_name, Object.hasOwn(RESORT_READINGS, resort.name) ? RESORT_READINGS[resort.name] : ""].some((name) => searchText(name).includes(query)));
 
   useEffect(() => {
-    if (!resortsInRegion.length) return;
+    if (tab !== "live" || !resortsInRegion.length) return;
     const controller = new AbortController();
     loadResortLatestDates(supabase, resortsInRegion, controller.signal).then(
       (dates) => {
@@ -68,7 +76,7 @@ function Home() {
       },
     );
     return () => controller.abort();
-  }, [resortsInRegion, postKey]);
+  }, [resortsInRegion, postKey, tab]);
 
 
   return (
@@ -101,6 +109,8 @@ function Home() {
             <p className="text-[10px] leading-relaxed text-slate-600">ロックは固定の見本です。閲覧制御は未実装で、既存の詳細ページ・APIは公開されたままです。</p>
           </aside>}
 
+          <Link href="/settings" className="mb-3 inline-flex min-h-11 items-center text-sm text-brand underline">登録エリアを設定</Link>
+          {preferences.error && <p role="alert" className="mb-3 text-sm text-amber-900">{preferences.error} 通常のエリア順で表示しています。<button onClick={preferences.retry} className="ml-2 underline">再読み込み</button></p>}
           {master.loading && <p role="status" className="mb-6 text-sm text-slate-600">エリア・スキー場を読み込んでいます…</p>}
           {master.error && (
             <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm" role="alert">
@@ -112,15 +122,17 @@ function Home() {
             <section aria-label="エリア選択" className="mb-3 rounded-2xl border border-brand/15 bg-white p-2 md:p-4">
               <div className="md:hidden">
                 <label htmlFor="home-region" className="sr-only">地域を選択</label>
-                <select id="home-region" className="ui-input text-sm font-semibold text-brand" value={selectedRegion?.code ?? ""}
+                <select id="home-region" className="ui-input text-sm font-semibold text-brand" value={allRegions ? "all" : selectedRegion?.code ?? ""}
                   onChange={(event) => updateListState({ region: event.target.value })}>
-                  {!selectedRegion && <option value="" disabled>地域を選択してください</option>}
-                  {master.data.regions.map((region) => <option key={region.code} value={region.code}>{region.name}</option>)}
+                  <option value="all">全エリア（登録エリア優先）</option>
+                  {!allRegions && !selectedRegion && <option value="" disabled>地域を選択してください</option>}
+                  {orderedRegions.map((region) => <option key={region.code} value={region.code}>{region.name}</option>)}
                 </select>
               </div>
               <h2 className="mb-3 hidden text-xs font-semibold text-slate-600 md:block">エリアを選ぶ</h2>
-              <div className="hidden grid-cols-3 gap-2 md:grid lg:grid-cols-9">
-                {master.data.regions.map((region) => (
+              <div className="hidden grid-cols-3 gap-2 md:grid lg:grid-cols-5">
+                <button aria-pressed={allRegions} onClick={() => updateListState({ region: "all" })} className={`ui-tab ${allRegions ? "ui-tab-active" : "ui-tab-idle"}`}>全エリア（登録エリア優先）</button>
+                {orderedRegions.map((region) => (
                   <button key={region.code} aria-label={region.name} aria-pressed={region.code === selectedRegion?.code}
                     onClick={() => updateListState({ region: region.code })}
                     className={`ui-tab break-words ${region.code === selectedRegion?.code ? "ui-tab-active" : "ui-tab-idle"}`}>
@@ -128,11 +140,11 @@ function Home() {
                   </button>
                 ))}
               </div>
-              {!selectedRegion && <p role="alert" className="mt-3 text-sm text-amber-900">指定されたエリアが見つかりません。エリアを選び直してください。</p>}
+              {!allRegions && !selectedRegion && <p role="alert" className="mt-3 text-sm text-amber-900">指定されたエリアが見つかりません。エリアを選び直してください。</p>}
             </section>
           )}
-          {master.data && selectedRegion && <div className="mb-3">
-            <label htmlFor="resort-search" className="mb-2 block text-xs font-semibold text-brand">スキー場を検索 <span className="font-normal text-slate-600">（選択中のエリア内）</span></label>
+          {master.data && (allRegions || selectedRegion) && <div className="mb-3">
+            <label htmlFor="resort-search" className="mb-2 block text-xs font-semibold text-brand">スキー場を検索 <span className="font-normal text-slate-600">（表示中のエリア内）</span></label>
             <div className="flex items-center gap-2">
               <div className="relative min-w-0 flex-1">
                 <svg aria-hidden="true" className="pointer-events-none absolute top-4 left-3 size-4 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="10" cy="10" r="6" /><path d="m15 15 5 5" /></svg>
@@ -144,10 +156,10 @@ function Home() {
           <section aria-label="スキー場一覧">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-bold tracking-tight">{selectedRegion ? `${selectedRegion.name}のスキー場` : "スキー場"}</h2>
-                {selectedRegion && <p className="mt-1 text-xs text-slate-500">{visibleResorts.length} / {resorts.length}スキー場 · {tab === "morning" ? "公式情報（取得準備中）" : "ユーザー現地投稿（閲覧準備中）"}</p>}
+                <h2 className="text-lg font-bold tracking-tight">{allRegions ? "全エリアのスキー場" : selectedRegion ? `${selectedRegion.name}のスキー場` : "スキー場"}</h2>
+                {(allRegions || selectedRegion) && <p className="mt-1 text-xs text-slate-500">{visibleResorts.length} / {resorts.length}スキー場 · {tab === "morning" ? "公式情報（取得準備中）" : "ユーザー現地投稿（閲覧準備中）"}</p>}
               </div>
-              {master.data && selectedRegion && tab === "live" && (
+              {master.data && (allRegions || selectedRegion) && tab === "live" && (
                 <fieldset className="rounded-xl border border-slate-200 bg-white p-1">
                   <legend className="sr-only">並び順</legend>
                   <div className="flex gap-1">
@@ -162,19 +174,26 @@ function Home() {
                 </fieldset>
               )}
             </div>
-            {tab === "live" && <p className="mb-2 text-[10px] text-slate-500">最新投稿順：ユーザー投稿日時順（公式発表順ではありません）</p>}
+            {tab === "live" && <p className="mb-2 text-[10px] text-slate-500">各エリア内の最新投稿順：ユーザー投稿日時順（公式発表順ではありません）</p>}
             {tab === "live" && sortOrder === "latest" && postsLoading && <p role="status" className="mb-3 text-xs text-slate-600">最新投稿順を読み込んでいます…</p>}
             {tab === "live" && sortOrder === "latest" && postsError && <p className="mb-3 text-xs text-amber-900">最新投稿順を取得できないため、五十音順で表示しています。</p>}
             {postsError && <p role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{postsError}</p>}
-            {master.data && selectedRegion && !resorts.length && <p className="text-sm text-slate-600">このエリアには現在投稿できるスキー場がありません。</p>}
+            {master.data && (allRegions || selectedRegion) && !resorts.length && <p className="text-sm text-slate-600">このエリアには現在投稿できるスキー場がありません。</p>}
 
             {resorts.length > 0 && !visibleResorts.length && <p role="status" className="ui-card mb-4 p-5 text-sm">検索に一致するスキー場がありません。検索語を変更してください。</p>}
-            <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {visibleResorts.map((resort) => tab === "morning"
-                ? <MorningResortCard key={resort.name} resort={resort} returnTo={returnTo} />
-                : <LockedResortCard key={resort.name} resort={resort} returnTo={returnTo} latest={postsLoading ? { state: "loading" }
-                  : postsError ? { state: "error" } : { state: "ready", createdAt: latestDates.get(resort.name) ?? null }} />)}
-            </div>
+            {groups.map(({ region, resorts: inRegion }) => {
+              const visible = inRegion.filter((resort) => visibleResorts.includes(resort));
+              if (!visible.length) return null;
+              return <section key={region.code} aria-label={`${region.name}の一覧`} className="mb-6">
+                <h3 className="mb-3 font-bold">{region.name}{preferences.codes.includes(region.code) && <span className="ml-2 text-xs font-normal text-brand">登録エリア</span>}</h3>
+                <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {visible.map((resort) => tab === "morning"
+                    ? <MorningResortCard key={resort.name} resort={resort} returnTo={returnTo} />
+                    : <LockedResortCard key={resort.name} resort={resort} returnTo={returnTo} latest={postsLoading ? { state: "loading" }
+                      : postsError ? { state: "error" } : { state: "ready", createdAt: latestDates.get(resort.name) ?? null }} />)}
+                </div>
+              </section>;
+            })}
           </section>
         </div>
         <p className="mt-8 text-center text-[11px] leading-relaxed text-slate-500">公式発表とユーザー現地投稿は別の情報です。閲覧制限は未実装で、既存の投稿詳細ページ・APIは引き続き公開されています。</p>
