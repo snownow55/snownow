@@ -7,6 +7,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useResortMaster } from "@/lib/use-resort-master";
+import { useOfficialConditions } from "@/lib/use-official-conditions";
 import { useRegionPreferences } from "@/lib/use-region-preferences";
 import { prioritizeRegions } from "@/lib/region-preferences";
 import { RESORT_READINGS, sortResorts, type ResortSort } from "@/lib/resort-sort";
@@ -57,7 +58,8 @@ function Home() {
   const postsLoading = resortsInRegion.length > 0 && !currentPosts;
   const postsError = currentPosts?.error ?? "";
   const latestDates = currentPosts?.dates ?? new Map<string, string>();
-  const resorts = resortsInRegion;
+  const official = useOfficialConditions(tab === "morning");
+  const resorts = tab === "morning" ? resortsInRegion.filter((resort) => resort.name !== "和寒東山スキー場") : resortsInRegion;
   const groups = orderedRegions.filter((region) => allRegions || region.code === regionCode).map((region) => ({
     region, resorts: sortResorts(resorts.filter((resort) => resort.region_code === region.code), tab === "morning" ? "kana" : sortOrder, latestDates),
   }));
@@ -153,6 +155,7 @@ function Home() {
               {search && <button type="button" className="ui-secondary text-xs" onClick={() => updateListState({ search: "" })}>検索をクリア</button>}
             </div>
           </div>}
+          {tab === "morning" && official.error && <p role="alert" className="mb-3 text-sm text-amber-900">{official.error}</p>}
           <section aria-label="スキー場一覧">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -188,7 +191,7 @@ function Home() {
                 <h3 className="mb-3 font-bold">{region.name}{preferences.codes.includes(region.code) && <span className="ml-2 text-xs font-normal text-brand">登録エリア</span>}</h3>
                 <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {visible.map((resort) => tab === "morning"
-                    ? <MorningResortCard key={resort.name} resort={resort} returnTo={returnTo} />
+                    ? <MorningResortCard key={resort.name} resort={resort} returnTo={returnTo} condition={official.rows.find((row) => row.resort_id === resort.id)} now={official.now} />
                     : <LockedResortCard key={resort.name} resort={resort} returnTo={returnTo} latest={postsLoading ? { state: "loading" }
                       : postsError ? { state: "error" } : { state: "ready", createdAt: latestDates.get(resort.name) ?? null }} />)}
                 </div>

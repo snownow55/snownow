@@ -1,14 +1,28 @@
-// Official feeds are not connected yet. Never infer these fields from user
-// posts, demo scenarios, the current clock, or synthetic numeric defaults.
-export function OfficialConditions() {
+import { isCurrentOfficial, officialStatusLabel, type OfficialCondition } from "@/lib/official-conditions";
+
+export function OfficialConditions({ condition, now }: { condition?: OfficialCondition; now?: Date | null }) {
+  const current = !!condition && !!now && isCurrentOfficial(condition, now);
+  const status = condition && !now ? "未取得" : officialStatusLabel(condition, now ?? new Date());
+  const fields: [string, string][] = [
+    ["新雪量", current && condition.new_snow_cm !== null ? `新雪 +${condition.new_snow_cm}cm` : "—"],
+    ["積雪量", current && condition.snow_depth_cm !== null ? `${condition.snow_depth_cm}cm` : "—"],
+    ["気温", current && condition.temperature_c !== null ? `${condition.temperature_c}℃` : "—"],
+  ];
+  if (current && condition.official_snow_quality?.trim()) fields.push(["公式雪質", condition.official_snow_quality]);
+  const time = current ? condition.published_at ?? condition.fetched_at : null;
   return <div role="group" aria-label="朝の公式情報">
+    {status && <p className="mb-2 text-xs text-slate-500">{status}</p>}
     <dl className="grid grid-cols-2 gap-2">
-      {["新雪量", "雪質", "積雪量", "気温"].map((label) => <div key={label} className="min-w-0 rounded-lg bg-brand-soft px-3 py-2">
+      {fields.map(([label, value]) => <div key={label} className="min-w-0 rounded-lg bg-brand-soft px-3 py-2">
         <dt className="text-[10px] text-slate-600">{label}</dt>
-        <dd className="mt-1 text-sm font-semibold text-slate-500">未取得</dd>
+        <dd className="mt-1 text-sm font-semibold text-slate-600">{value}</dd>
       </div>)}
     </dl>
-    <p aria-label="公式情報の発表日時" className="mt-2 text-[10px] leading-relaxed text-slate-500">発表日時：未取得</p>
+    {current && <p className="mt-2 text-[10px] text-slate-500">観測日：{condition.observation_date} · {condition.location_name}</p>}
+    {time && <p aria-label="公式情報の発表日時" className="mt-2 text-[10px] text-slate-500">
+      {condition?.published_at ? "公式発表時刻" : "取得時刻"}：<time dateTime={time}>{new Date(time).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}</time>
+    </p>}
+    {condition && <a href={condition.source_url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex min-h-11 items-center text-xs text-brand underline">公式情報を見る</a>}
   </div>;
 }
 

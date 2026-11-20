@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { OfficialCondition } from "@/lib/official-conditions";
 import { OfficialConditions } from "./official-conditions";
 import { resortDetailUrl } from "../lib/home-return";
 import { ResortDemoNotice } from "./prototype-notice";
@@ -12,15 +13,14 @@ function ResortActions({ resort, returnTo }: { resort: Resort; returnTo?: string
   </div>;
 }
 
-// Official data integration is intentionally absent. Nothing is inferred from
-// user posts; future official fields/source links belong to this separate view.
-export function MorningResortCard({ resort, returnTo }: { resort: Resort; returnTo?: string }) {
+// Official data remains separate from user posts and their classifications.
+export function MorningResortCard({ resort, returnTo, condition, now }: { resort: Resort; returnTo?: string; condition?: OfficialCondition; now?: Date | null }) {
   return <article aria-labelledby={`resort-${resort.id}`} className="ui-card min-w-0 p-4">
     <div className="mb-3">
       <p className="mb-1 text-[10px] font-semibold text-brand">公式情報・無料</p>
       <h3 id={`resort-${resort.id}`} className="text-base font-bold leading-snug break-words">{resort.display_name}</h3>
     </div>
-    <OfficialConditions />
+    <OfficialConditions condition={condition} now={now} />
     <Link href={resortDetailUrl(resort.name, returnTo)}
       className="ui-primary mt-3 w-full min-w-0 px-2 text-xs leading-relaxed break-words sm:text-sm">
       今のゲレンデコンディションを見る
