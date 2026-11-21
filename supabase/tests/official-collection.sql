@@ -102,4 +102,51 @@ BEGIN
   RESET ROLE;
 END;
 $test$;
+
+DO $rss$
+DECLARE
+  resort integer := (SELECT id FROM public.resorts WHERE name = '北長沼スキー場');
+  source bigint;
+  endpoint constant text := 'https://fixture.invalid/feed/';
+  article constant text := 'https://fixture.invalid/posts/about-snow';
+  collected timestamptz := now();
+  report jsonb := jsonb_build_object(
+    'observation_date', (collected AT TIME ZONE 'Asia/Tokyo')::date,
+    'published_at', collected, 'fetched_at', collected, 'reference_url', article,
+    'location_kind', 'unspecified', 'location_name', 'Synthetic', 'status', 'success', 'new_snow_cm', 0
+  );
+BEGIN
+  SET LOCAL ROLE service_role;
+  INSERT INTO snownow_private.official_sources(resort_id, source_url, adapter_key, enabled, access_permission, publication_permission)
+    VALUES (resort, endpoint, 'kitanaganuma-rss', true, 'allowed', 'allowed') RETURNING id INTO source;
+  IF (public.get_official_collection_source(source)->>'resort_name') IS DISTINCT FROM '北長沼スキー場' THEN
+    RAISE EXCEPTION 'Collection source did not resolve the master identity';
+  END IF;
+  IF public.store_official_observation(source, resort, endpoint, 'kitanaganuma-rss', report) <> 'saved' THEN
+    RAISE EXCEPTION 'RSS observation was not stored';
+  END IF;
+  IF (SELECT source_url FROM snownow_private.official_observations WHERE source_id = source)
+      IS DISTINCT FROM endpoint THEN
+    RAISE EXCEPTION 'RSS permalink overwrote the approved feed endpoint';
+  END IF;
+  BEGIN
+    PERFORM public.store_official_observation(source, resort, endpoint, 'kitanaganuma-rss',
+      report || jsonb_build_object('reference_url', 'https://elsewhere.invalid/article'));
+    RAISE EXCEPTION 'Foreign-origin article URL was accepted';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL;
+  END;
+  SET LOCAL ROLE anon;
+  IF (SELECT row(source_url, new_snow_cm) FROM public.official_morning_conditions WHERE resort_id = resort)
+      IS DISTINCT FROM row(article, 0::numeric) THEN
+    RAISE EXCEPTION 'Published RSS observation did not preserve permalink or actual zero';
+  END IF;
+  SET LOCAL ROLE service_role;
+  UPDATE snownow_private.official_sources SET publication_permission = 'denied' WHERE id = source;
+  SET LOCAL ROLE authenticated;
+  IF EXISTS (SELECT FROM public.official_morning_conditions WHERE resort_id = resort) THEN
+    RAISE EXCEPTION 'RSS observation remained visible after publication revocation';
+  END IF;
+  RESET ROLE;
+END;
+$rss$;
 ROLLBACK;

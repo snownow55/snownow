@@ -3,11 +3,13 @@ import {
   type OfficialObservationInput, type OfficialSource,
 } from "./official-conditions.ts";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { facilityAdapter, type FacilityFormat } from "./official-facility-adapters.ts";
 
-export type CollectorSource = Omit<OfficialSource, "permission_scope"> & { adapter_key: string | null };
+export type CollectorSource = Omit<OfficialSource, "permission_scope"> & { adapter_key: string | null; resort_name?: string };
 type Observation = Omit<OfficialObservationInput, "fetched_at"> & {
   fetched_at: string;
   failure_code: FailureCode | null;
+  reference_url?: string;
 };
 type FailureCode = "timeout" | "network" | "http" | "invalid_response";
 export type StoreResult = "saved" | "duplicate" | "superseded" | "permission_changed";
@@ -42,7 +44,6 @@ type CollectionResult = {
   failure?: FailureCode;
 };
 type JsonObject = Record<string, unknown>;
-type Adapter = (value: unknown, source: CollectorSource, fetched: Date) => Observation;
 class CollectionFailure extends Error {
   readonly code: FailureCode;
 
@@ -53,7 +54,6 @@ class CollectionFailure extends Error {
 }
 
 const maxBodyBytes = 256 * 1024;
-const adapters = new Map<string, Adapter>([["json-v1", normalizeJsonObservation]]);
 
 function invalid(): never {
   throw new CollectionFailure("invalid_response");
@@ -161,12 +161,23 @@ export function parseSourceApprovals(raw: string): Approval[] {
   });
 }
 
-async function readResponse(response: Response): Promise<unknown> {
+const mediaTypes: Record<FacilityFormat, RegExp> = {
+  json: /^application\/(?:json|[a-z0-9.+-]+\+json)(?:\s*;|$)/i,
+  html: /^(?:text\/html|application\/xhtml\+xml)(?:\s*;|$)/i,
+  rss: /^(?:application\/(?:rss\+xml|xml)|text\/xml)(?:\s*;|$)/i,
+};
+const accept: Record<FacilityFormat, string> = {
+  json: "application/json",
+  html: "text/html, application/xhtml+xml",
+  rss: "application/rss+xml, application/xml, text/xml",
+};
+
+async function readResponse(response: Response, format: FacilityFormat): Promise<unknown> {
   if (!response.ok) {
     void response.body?.cancel().catch(() => {});
     throw new CollectionFailure("http");
   }
-  if (!response.body || !/^application\/(?:json|[a-z0-9.+-]+\+json)(?:\s*;|$)/i.test(response.headers.get("content-type") ?? "")) {
+  if (!response.body || !mediaTypes[format].test(response.headers.get("content-type") ?? "")) {
     void response.body?.cancel().catch(() => {});
     return invalid();
   }
@@ -182,7 +193,8 @@ async function readResponse(response: Response): Promise<unknown> {
       if (length > maxBodyBytes) return invalid();
       body += decoder.decode(value, { stream: true });
     }
-    return JSON.parse(body + decoder.decode());
+    const decoded = body + decoder.decode();
+    return format === "json" ? JSON.parse(decoded) : decoded;
   } catch (error) {
     if (error instanceof TypeError || error instanceof SyntaxError) return invalid();
     throw error;
@@ -192,14 +204,23 @@ async function readResponse(response: Response): Promise<unknown> {
   }
 }
 
-async function collect(source: CollectorSource, adapter: Adapter, request: typeof fetch, now: () => Date, timeoutMs: number) {
+async function collect(source: CollectorSource, adapter: ReturnType<typeof facilityAdapter>, request: typeof fetch, now: () => Date, timeoutMs: number) {
   const signal = AbortSignal.timeout(timeoutMs);
   try {
+    const format = adapter?.format ?? "json";
     const response = await request(source.source_url, {
-      signal, redirect: "error", cache: "no-store", headers: { Accept: "application/json" },
+      signal, redirect: "error", cache: "no-store", headers: { Accept: accept[format] },
     });
-    const data = await readResponse(response);
-    return adapter(data, source, now());
+    const data = await readResponse(response, format);
+    const fetched = now();
+    let feed: unknown = data;
+    if (adapter) {
+      try { feed = adapter.parse(data, fetched); } catch { return invalid(); }
+    }
+    const observation = normalizeJsonObservation(feed, source, fetched);
+    const reference = adapter?.format === "rss" && object(feed).reference_url;
+    if (observation.status === "success" && typeof reference === "string") observation.reference_url = reference;
+    return observation;
   } catch (error) {
     const failure_code = signal.aborted ? "timeout" : error instanceof CollectionFailure ? error.code : "network";
     return { ...emptyObservation(source, now()), status: "failed" as const, failure_code };
@@ -217,9 +238,10 @@ export async function collectOfficialConditions(
   for (const { id, url } of approvals) {
     try {
       const source = await repository.loadSource(id);
-      const adapter = adapters.get(source?.adapter_key ?? "");
+      const adapter = facilityAdapter(source?.adapter_key ?? "");
       if (!source || source.id !== id || !Number.isSafeInteger(source.resort_id) || source.resort_id <= 0
-        || !adapter || source.source_url !== url || !approvedUrl(url)
+        || (!adapter && source.adapter_key !== "json-v1") || source.source_url !== url || !approvedUrl(url)
+        || (adapter && (adapter.url !== url || adapter.resortName !== source.resort_name))
         || !mayFetchOfficialSource(source) || !mayPublishOfficialSource(source)) {
         results.push({ id, result: "skipped" });
         continue;
