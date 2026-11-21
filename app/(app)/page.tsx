@@ -162,7 +162,7 @@ function Home() {
             <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-bold tracking-tight">{allRegions ? "全エリアのスキー場" : selectedRegion ? `${selectedRegion.name}のスキー場` : "スキー場"}</h2>
-                {(allRegions || selectedRegion) && <p className="mt-1 text-xs text-slate-500">{visibleResorts.length} / {resorts.length}スキー場 · {tab === "morning" ? "公式情報（取得準備中）" : "ユーザー現地投稿（無料公開）"}</p>}
+                {(allRegions || selectedRegion) && <p className="mt-1 text-xs text-slate-500">{visibleResorts.length} / {resorts.length}スキー場 · {tab === "morning" ? "公式情報" : "ユーザー現地投稿（無料公開）"}</p>}
               </div>
               {master.data && (allRegions || selectedRegion) && tab === "live" && (
                 <fieldset className="rounded-xl border border-slate-200 bg-white p-1">

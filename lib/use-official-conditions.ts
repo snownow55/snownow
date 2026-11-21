@@ -9,18 +9,21 @@ export function useOfficialConditions(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
     let active = true;
+    let request = 0;
     function refresh() {
+      const revision = ++request;
       setNow(new Date());
       loadOfficialConditions(supabase).then(
-        (data) => { if (active) { setRows(data); setError(""); } },
-        () => { if (active) { setRows([]); setError("公式情報を取得できませんでした。"); } },
+        (data) => { if (active && revision === request) { setRows(data); setError(""); } },
+        () => { if (active && revision === request) { setRows([]); setError("公式情報を取得できませんでした。"); } },
       );
     }
     refresh();
     // Re-evaluate JST validity even if the page stays open overnight.
     const timer = setInterval(() => setNow(new Date()), 1000);
+    const refreshTimer = setInterval(refresh, 60_000);
     window.addEventListener("focus", refresh);
-    return () => { active = false; clearInterval(timer); window.removeEventListener("focus", refresh); };
+    return () => { active = false; clearInterval(timer); clearInterval(refreshTimer); window.removeEventListener("focus", refresh); };
   }, [enabled]);
   return { rows, now, error };
 }

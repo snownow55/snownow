@@ -14,7 +14,7 @@ test("morning uses current official records, keeps missing distinct, and expires
     if (url.pathname === "/rest/v1/official_morning_conditions") return route.fulfill({ json: [
       { ...base, resort_id: 1 }, { ...base, resort_id: 2, observation_date: "2025-11-20", new_snow_cm: 55 },
       { ...base, resort_id: 3, status: "missing", new_snow_cm: null },
-      { ...base, resort_id: 4, new_snow_cm: 12, official_snow_quality: "公式発表の雪質表記" },
+      { ...base, resort_id: 4, new_snow_cm: 12, official_snow_quality: "公式発表の雪質表記", published_at: "2026-11-19T22:30:00Z" },
     ] });
     if (url.pathname === "/rest/v1/regions" || url.pathname === "/rest/v1/resorts") return route.fulfill({ json: master[url.pathname.endsWith("regions") ? "regions" : "resorts"] });
     return route.continue();
@@ -28,10 +28,14 @@ test("morning uses current official records, keeps missing distinct, and expires
   await expect(card(1).getByRole("definition")).toHaveText(["新雪 +0cm", "—", "-5℃"]);
   await expect(card(1).getByText("公式雪質", { exact: true })).toHaveCount(0);
   await expect(card(1).getByText("取得時刻：", { exact: false })).toBeVisible();
+  await expect(card(1).getByText("新雪の観測期間：24時間", { exact: true })).toBeVisible();
+  await expect(card(1).getByRole("link", { name: "公式情報を見る" })).toHaveAttribute("href", base.source_url);
   await expect(card(2).getByText("朝の情報は未掲載", { exact: true })).toBeVisible();
   await expect(card(2).getByText("新雪 +55cm", { exact: true })).toHaveCount(0);
   await expect(card(3).getByText("未発表", { exact: true })).toBeVisible();
   await expect(card(4).getByText("公式発表の雪質表記", { exact: true })).toBeVisible();
+  await expect(card(4).getByLabel("公式情報の発表日時")).toBeVisible();
+  await expect(card(4).getByText("取得時刻：", { exact: false })).toBeVisible();
   await page.clock.setFixedTime(new Date("2026-11-20T15:00:00Z"));
   await expect(card(1).getByText("新雪 +0cm", { exact: true })).toHaveCount(0);
   await expect(card(1).getByRole("definition")).toHaveText(["—", "—", "—"]);

@@ -354,6 +354,12 @@ try:
     sql(destination,f"UPDATE snownow_private.post_limits SET last_success_at=clock_timestamp()-interval '60 minutes' WHERE user_id='{OTHER}';")
     assert '"allowed": true' in rpc(destination,PAYLOAD,actor=OTHER).stdout
     print(profile+': PASS separate-cluster pg_dump/pg_restore, owners/ACL/data, restored RPC',flush=True)
+    if profile=='development':
+        for migration in sorted(MIGRATION.parent.glob('*.sql')):
+            if migration.name > MIGRATION.name:
+                apply(source,migration.read_text(encoding='utf-8'))
+        sql(source,(ROOT/'supabase/tests/official-collection.sql').read_text(encoding='utf-8'),role='cluster_admin')
+        print(profile+': PASS official collection RPC, deduplication, failure safety and publication revocation',flush=True)
     stop(destination)
     stop(source)
  print('PASS: synthetic managed Auth schema; no real Supabase Auth/PostgREST/mail or existing DB access',flush=True)

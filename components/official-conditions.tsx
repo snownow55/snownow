@@ -9,7 +9,7 @@ export function OfficialConditions({ condition, now }: { condition?: OfficialCon
     ["気温", current && condition.temperature_c !== null ? `${condition.temperature_c}℃` : "—"],
   ];
   if (current && condition.official_snow_quality?.trim()) fields.push(["公式雪質", condition.official_snow_quality]);
-  const time = current ? condition.published_at ?? condition.fetched_at : null;
+  const showTime = (time: string) => <time dateTime={time}>{new Date(time).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}</time>;
   return <div role="group" aria-label="朝の公式情報">
     {status && <p className="mb-2 text-xs text-slate-500">{status}</p>}
     <dl className="grid grid-cols-2 gap-2">
@@ -19,8 +19,14 @@ export function OfficialConditions({ condition, now }: { condition?: OfficialCon
       </div>)}
     </dl>
     {current && <p className="mt-2 text-[10px] text-slate-500">観測日：{condition.observation_date} · {condition.location_name}</p>}
-    {time && <p aria-label="公式情報の発表日時" className="mt-2 text-[10px] text-slate-500">
-      {condition?.published_at ? "公式発表時刻" : "取得時刻"}：<time dateTime={time}>{new Date(time).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}</time>
+    {current && condition.new_snow_cm !== null && condition.snowfall_period && <p className="mt-1 text-[10px] text-slate-500">
+      新雪の観測期間：{condition.snowfall_period}
+    </p>}
+    {current && condition.published_at && <p aria-label="公式情報の発表日時" className="mt-2 text-[10px] text-slate-500">
+      公式発表時刻：{showTime(condition.published_at)}
+    </p>}
+    {current && condition.fetched_at && <p className="mt-1 text-[10px] text-slate-500">
+      取得時刻：{showTime(condition.fetched_at)}
     </p>}
     {condition && <a href={condition.source_url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex min-h-11 items-center text-xs text-brand underline">公式情報を見る</a>}
   </div>;

@@ -47,7 +47,6 @@ export async function loadOfficialConditions(client: Pick<SupabaseClient, "from"
   return data as OfficialCondition[];
 }
 
-// Contract only. No adapters are registered or executed in this stage.
 export type OfficialSource = {
   id: number; resort_id: number; source_url: string; enabled: boolean;
   access_permission: "unconfirmed" | "allowed" | "denied";
@@ -58,7 +57,10 @@ export type OfficialObservationInput = Omit<OfficialCondition, "resort_id"> & {
   source_id: number; resort_id: number; observation_date: string;
   location_kind: "summit" | "base" | "unspecified"; location_name: string;
 };
-export type OfficialAdapter = (source: OfficialSource, signal: AbortSignal) => Promise<OfficialObservationInput>;
-export function mayFetchOfficialSource(source: OfficialSource): boolean {
+export function mayFetchOfficialSource(source: Pick<OfficialSource, "enabled" | "access_permission">): boolean {
   return source.enabled && source.access_permission === "allowed";
+}
+
+export function mayPublishOfficialSource(source: Pick<OfficialSource, "enabled" | "publication_permission">): boolean {
+  return source.enabled && source.publication_permission === "allowed";
 }

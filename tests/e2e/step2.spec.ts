@@ -45,7 +45,7 @@ for (const width of [390, 1280]) {
 }
 test("live master shows 63 active resorts, keeps canonical names and provisional region", async ({ page, request }) => {
   await request.post(fixture + "/__control", { data: { resorts: master.resorts.map((r, i) => ({ ...r, id: i + 100, is_active: true })) } });
-  await page.goto("/");
+  await page.goto("/?tab=live");
   for (const region of master.regions) {
     await selectRegion(page, region.name);
     const list = page.getByRole("region", { name: "スキー場一覧" });
