@@ -51,6 +51,7 @@ export function ResortLiveCard({ resort, summary, postsLoading = false, postsErr
           </div>
         ))}
       </dl>
+      {latestPost?.updated_at && <p className="mt-2 text-xs text-slate-500">編集済み</p>}
       {latestPost && <ResortMemo key={latestPost.id} area={latestPost.area} comment={latestPost.comment} />}
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Link href={resortDetailUrl(resort.name, returnTo)}

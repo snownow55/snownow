@@ -88,7 +88,7 @@ function PostForm() {
         setSubmitError(postErrorMessage(response.status, payload));
         return;
       }
-      router.push(regionUrl(selectedResort.region_code));
+      router.push("/resort/" + encodeURIComponent(resort));
     } catch {
       setSubmitError("通信に失敗しました。もう一度お試しください。");
     } finally {

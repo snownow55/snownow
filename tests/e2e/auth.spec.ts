@@ -93,7 +93,7 @@ test("login preserves selected resort and verified user can submit; logout remov
   );
   await page.getByRole("button", { name: "投稿する", exact: true }).click();
   expect((await postRequest).postDataJSON().snowfall).toBe("ほぼ無し");
-  await expect(page).toHaveURL("http://127.0.0.1:3100/?region=sapporo");
+  await expect(page).toHaveURL("http://127.0.0.1:3100/resort/" + encodeURIComponent("キロロ"));
   await page.getByRole("button", { name: "ログアウト" }).click();
   await expect(
     page.getByRole("navigation").getByRole("link", { name: "ログイン" }),

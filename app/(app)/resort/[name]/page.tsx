@@ -1,4 +1,6 @@
 "use client";
+import { useAuth } from "@/components/auth-provider";
+import { OwnerPostActions } from "@/components/owner-post-actions";
 import { safeHomeReturn } from "@/lib/home-return";
 import { PrototypeNotice } from "@/components/prototype-notice";
 import { OfficialConditionsSection } from "@/components/official-conditions";
@@ -21,6 +23,7 @@ type SnowPost = {
   comment: string;
   createdAt: string;
   timeAgo: string;
+  updatedAt: string | null;
 };
 
   function getTimeAgo(createdAt: string) {
@@ -41,6 +44,15 @@ type SnowPost = {
 
 function ResortPageContent() {
   const searchParams = useSearchParams();
+  const { user } = useAuth();
+  const [revision,setRevision]=useState(0);
+  const [ownership,setOwnership]=useState<{userId:string;ids:number[]}|null>(null);
+  useEffect(()=>{
+    if(!user) return;
+    let active=true;
+    fetch("/api/posts/manage",{cache:"no-store"}).then(r=>r.ok?r.json():Promise.reject()).then(data=>{if(active && Array.isArray(data.ids)) setOwnership({userId:user.id,ids:data.ids});}).catch(()=>{if(active)setOwnership(null);});
+    return ()=>{active=false;};
+  },[user,revision]);
   const { name: segment } = useParams<{ name: string }>();
   let resortName = "";
   try { resortName = decodeURIComponent(segment); } catch { /* Invalid URL: no master match. */ }
@@ -62,7 +74,7 @@ function ResortPageContent() {
     if (!supabase) throw new Error("Unavailable");
     const { data, error } = await supabase
       .from("snow_posts")
-      .select("id,resort,area,snow_type,snowfall,roughness,crowd,comment,created_at")
+      .select("id,resort,area,snow_type,snowfall,roughness,crowd,comment,created_at,updated_at")
       .eq("resort", canonicalName)
       .order("created_at", { ascending: false });
 
@@ -79,6 +91,7 @@ function ResortPageContent() {
       comment: post.comment,
       createdAt: post.created_at,
       timeAgo: getTimeAgo(post.created_at),
+      updatedAt: post.updated_at ?? null,
     }));
 
     if (active) setPostState({ name: canonicalName!, posts: formattedPosts, error: "" });
@@ -88,7 +101,7 @@ function ResortPageContent() {
     if (active) setPostState({ name: canonicalName, posts: [], error: "投稿情報を取得できませんでした。" });
   });
   return () => { active = false; };
-}, [canonicalName]);
+}, [canonicalName, revision]);
 
   if (master.loading) return <p role="status" className="p-6">スキー場を読み込んでいます…</p>;
   if (master.error) return <PageShell className="p-6">
@@ -154,6 +167,7 @@ function ResortPageContent() {
                 key={post.id}
                 className="ui-card p-5"
               >
+                {post.updatedAt && <p className="text-xs text-slate-500">編集済み</p>}
                 <div className="mb-4 flex items-start justify-between">
                   <div>
                     <p className="font-bold">
@@ -204,6 +218,7 @@ function ResortPageContent() {
                     </p>
                   </div>
                 )}
+                {user && ownership?.userId===user.id && ownership.ids.includes(post.id) && <OwnerPostActions key={`${user.id}:${post.id}:${post.updatedAt}`} id={post.id} initial={{area:post.area,snow_type:post.snowType,snowfall:post.snowfall,roughness:post.roughness,crowd:post.crowd,comment:post.comment}} onChanged={()=>setRevision(v=>v+1)}/>}
               </article>
             ))}
           </div>

@@ -11,10 +11,11 @@ export type LatestSnowPost = {
   crowd: string;
   comment: string;
   created_at: string;
+  updated_at?: string | null;
 };
 export type ResortPostSummary = { latest: LatestSnowPost | null; count: number };
 export const POSTS_ERROR = "投稿情報を取得できませんでした。";
-const columns = "id,resort,area,snow_type,snowfall,roughness,crowd,comment,created_at";
+const columns = "id,resort,area,snow_type,snowfall,roughness,crowd,comment,created_at,updated_at";
 
 function parsePost(value: unknown, name: string): LatestSnowPost {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(POSTS_ERROR);

@@ -128,10 +128,7 @@ test("region to detail to fixed form submits the selected resort without a ratin
   expect((await sent).postDataJSON()).toEqual({ resort: "カムイスキーリンクス", area: "中腹", snow_type: "圧雪",
     snowfall: "うっすら積もった", roughness: "少し荒れている", crowd: "普通",
     comment: "投稿先を固定したフォームの確認" });
-  await expect(page).toHaveURL(/\/\?region=asahikawa-furano$/);
-  const card = page.getByRole("region", { name: "スキー場一覧" }).getByRole("article", { name: "カムイスキーリンクス", exact: true });
-  await expect(card.locator("dd")).toHaveText(["未取得", "未取得", "未取得", "未取得"]);
-  await card.getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true }).click();
+  await expect(page).toHaveURL("http://127.0.0.1:3100/resort/" + encodeURIComponent("カムイスキーリンクス"));
   await expect(page.getByText("投稿先を固定したフォームの確認", { exact: false })).toBeVisible();
 });
 
@@ -151,7 +148,7 @@ test("direct post access retains both selectors after changing region and resort
   const sent = page.waitForRequest((req) => new URL(req.url()).pathname === "/api/posts" && req.method() === "POST");
   await page.getByRole("button", { name: "投稿する", exact: true }).click();
   expect((await sent).postDataJSON()).toEqual({ ...body, resort: "カムイスキーリンクス", comment: "直接アクセスの入力保持" });
-  await expect(page).toHaveURL(/\/\?region=asahikawa-furano$/);
+  await expect(page).toHaveURL("http://127.0.0.1:3100/resort/" + encodeURIComponent("カムイスキーリンクス"));
 });
 
 test("invalid fixed targets never fall back to a default resort and can be reselected", async ({ page, request }) => {
@@ -202,7 +199,7 @@ test("existing internal URLs show display names and preserve both histories", as
   const sent = page.waitForRequest((req) => new URL(req.url()).pathname === "/api/posts" && req.method() === "POST");
   await page.getByRole("button", { name: "投稿する", exact: true }).click();
   expect((await sent).postDataJSON().resort).toBe("オーンズ");
-  await expect(page).toHaveURL(/\/\?region=sapporo$/);
+  await expect(page).toHaveURL("http://127.0.0.1:3100/resort/" + encodeURIComponent("オーンズ"));
   await page.goto("/resort/" + encodeURIComponent("キロロ"));
   await expect(page.getByRole("heading", { name: "キロロ", exact: true })).toBeVisible();
   await expect(page.getByText("キロロの既存投稿", { exact: false })).toBeVisible();
@@ -244,8 +241,7 @@ test("dependent region selection clears the old resort and preserves the other f
   expect(payload.area).toBe("中腹");
   expect(payload.snowfall).toBe("ほぼ無し");
   expect(payload.comment).toBe("エリアを切り替えても入力を保持");
-  await expect(page).toHaveURL(/\/\?region=doto$/);
-  await page.goto("/resort/" + encodeURIComponent(payload.resort));
+  await expect(page).toHaveURL("http://127.0.0.1:3100/resort/" + encodeURIComponent(payload.resort));
   await expect(page.getByText("中腹", { exact: true })).toBeVisible();
 });
 
@@ -336,9 +332,7 @@ test("posting after visiting the list and detail refreshes both histories", asyn
   await page.getByLabel("営業開始後の降雪", { exact: true }).selectOption("そこそこ積もった");
   await page.locator("textarea").fill("一覧から投稿後の再表示");
   await page.getByRole("button", { name: "投稿する", exact: true }).click();
-  await expect(page).toHaveURL(/\/\?region=sapporo$/);
-  await expect(card.locator("dd")).toHaveText(["未取得", "未取得", "未取得", "未取得"]);
-  await card.getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true }).click();
+  await expect(page).toHaveURL("http://127.0.0.1:3100/resort/" + encodeURIComponent("オーンズ"));
   await expect(page.locator("article")).toHaveCount(2);
   await expect(page.getByText("一覧から投稿後の再表示", { exact: false })).toBeVisible();
 });
@@ -372,11 +366,12 @@ test("a master read failure after form load is refused by the API and preserves 
   expect((await response).status()).toBe(503);
   await expect(page.getByRole("main").getByRole("alert")).toContainText("投稿に失敗しました。");
   await expect(page.locator("textarea")).toHaveValue("通信失敗でも残す入力");
+  await expect(page).toHaveURL(/\/post\?/);
   await expectFixedForm(page, "キロロ");
   expect((await (await request.get(fixture + "/__stats")).json()).inserts).toBe(0);
 });
 
-for (const [name, displayName, region, label] of [
+for (const [name, displayName, , label] of [
   ["オーンズ", "スノークルーズオーンズ", "sapporo", "札幌近郊"],
   ["カムイスキーリンクス", "カムイスキーリンクス", "asahikawa-furano", "旭川・富良野"],
 ]) {
@@ -396,14 +391,14 @@ for (const [name, displayName, region, label] of [
     await expectFixedForm(page, displayName);
     await page.getByLabel("現地コメント", { exact: true }).fill("星なしの新規投稿");
     await page.getByRole("button", { name: "投稿する", exact: true }).click();
-    await expect(page).toHaveURL(`http://127.0.0.1:3100/?region=${region}`);
+    await expect(page).toHaveURL("http://127.0.0.1:3100/resort/" + encodeURIComponent(name));
+    await expect(page.getByText("「星なしの新規投稿」", { exact: true })).toBeVisible();
     await expect(card.getByLabel("現地コメント", { exact: true })).toHaveCount(0);
     const after = await (await request.get(fixture + "/__stats")).json();
     expect(after.inserts).toBe(1);
     expect(after.lastInsert.resort).toBe(name);
     expect(after.lastInsert.condition).toBeUndefined();
     expect(after.posts.slice(0, 2)).toEqual(before.posts);
-    await card.getByRole("link", { name: "今のゲレンデコンディションを見る", exact: true }).click();
     await expect(page.getByRole("heading", { name: displayName, level: 1, exact: true })).toBeVisible();
     await expect(page.locator("article")).toHaveCount(name === "オーンズ" ? 2 : 1);
     await expect(page.getByText("星なしの新規投稿", { exact: false })).toBeVisible();
