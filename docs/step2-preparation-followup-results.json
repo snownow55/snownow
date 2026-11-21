@@ -1,0 +1,48 @@
+{
+  "date_jst": "2026-11-18",
+  "base_commit": "84a29554d1e4ea299411ed19fa6810aecfae337b",
+  "baseline_84_tests": "previously passed and user approved; not rerun",
+  "windows_evidence": "user confirmed 13 files / 15 ZIP entries, 69919 bytes, hashes match",
+  "recovery": {
+    "status": "SYNTHETIC_APP_RECOVERY_PASSED",
+    "postgres_version": "17.11",
+    "execution_role": "postgres (NOSUPERUSER)",
+    "old_app_rows_restored": true,
+    "old_columns_function_sequences_restored": true,
+    "legacy_archive_and_cooldowns_preserved": true,
+    "post_apply_rows_quarantined": true,
+    "failed_recovery_atomic": true,
+    "public_and_column_acl_locked": true,
+    "auth_management_unrelated_sequence_unchanged": true,
+    "real_backup_rehearsal": false,
+    "hosted_verified": false
+  },
+  "preservation": {
+    "status": "WINDOWS_HELPER_REGRESSIONS_PASSED",
+    "ps_runtime": "7.7.0 Linux",
+    "windows_acl_mocked": true,
+    "windows_ps51_not_run": true,
+    "zip_cases": 6,
+    "lf_cases": 4
+  },
+  "cli_help": {
+    "version": "3.2.0",
+    "archive_sha256": "fb88b175a817563505be02c60872060bcb8d5c869a1aa5656eaeb085d4a2f1e4",
+    "published_checksum_matches": true,
+    "version_and_help_only": true,
+    "remote_syntax": "--remote=<ref|branch|url>"
+  },
+  "migration_sha256": "2e3a036d0f6305149601170e6b4718bb1ac0850e555df9af2497065c88753286",
+  "real_supabase_connected": false,
+  "github_push": false,
+  "vercel_deploy": false,
+  "step3_implementation": false,
+  "go_for_hosted_apply": false,
+  "remaining_gates": [
+    "real backup TOC review and app recovery rehearsal",
+    "Hosted actual role and backup delta",
+    "Hosted CLI history / dry-run",
+    "explicit apply and push/deploy approval",
+    "Windows 5.1 execution of updated helpers"
+  ]
+}

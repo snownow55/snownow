@@ -1,0 +1,23 @@
+{
+  "status": "MVP_EMPTY_START_DELTA_PASSED",
+  "tests": {
+    "migration_role_is_non_superuser": "PASS",
+    "new_posts_view_and_limits_start_empty": "PASS",
+    "empty_sequence_starts_at_one": "PASS",
+    "legacy_archive_exists_and_is_private": "PASS",
+    "approved_63_resorts_and_9_regions_match_master": "PASS",
+    "auth_and_management_metadata_unchanged": "PASS",
+    "rls_rpc_and_private_write_boundary_maintained": "PASS",
+    "recent_legacy_post_does_not_block_first_new_post": "PASS",
+    "first_rpc_post_gets_id_one_and_creates_only_its_limit": "PASS",
+    "cooldown_activates_after_first_new_post": "PASS"
+  },
+  "prior_84_tests_rerun": false,
+  "prior_recovery_rehearsals_rerun": false,
+  "hosted_connected": false,
+  "real_data_used": false,
+  "migration_sha256": "41126DCF8E0BFB0B1D583F2F52A05E9D34607B6A459A37E80006AF1167424B5D",
+  "migration_bytes": 26166,
+  "test_count": 10,
+  "earlier_seven_checks_reused_after_harness_fix": true
+}
