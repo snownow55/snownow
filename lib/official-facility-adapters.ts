@@ -108,6 +108,33 @@ function fixedHtml(heading: RegExp, fields: Labels, period?: string) {
   };
 }
 
+function sapporoKokusai(body: unknown, fetched: Date) {
+  if (typeof body !== "string") throw new Error("Expected HTML");
+  const section = /<section\b[^>]*\bid\s*=\s*["']toprealtime["'][^>]*>([\s\S]*?)<\/section\s*>/i
+    .exec(body.replace(/<!--[\s\S]*?-->/g, ""))?.[1];
+  const rows = section ? lines(section) : [];
+  const timestamps = rows.filter(row => /^\d{4}年\d{1,2}月\d{1,2}日\d{1,2}時(?:\d{1,2}分)?\s*現在$/.test(row));
+  const stamp = timestamps.length === 1 ? timestamps[0] : "";
+  const date = dateOn(stamp);
+  const published_at = date && dateAndTime(stamp, date);
+  if (!date || !published_at) return { status: "missing", observation_date: japanDate(fetched) };
+
+  function value(english: string, japanese: string) {
+    const matches = rows.flatMap((row, i) => row === japanese && rows[i - 1] === english ? [i] : []);
+    return matches.length === 1 ? rows[matches[0] - 2] ?? "" : "";
+  }
+  const quality = value("SNOW CONDITIONS", "雪質");
+  const snow_depth = measure(value("SNOW ACCUMULATION", "山頂積雪"), "cm");
+  return {
+    status: "success", observation_date: date, published_at, snowfall_period: "昨晩から",
+    location_kind: "unspecified",
+    location_name: snow_depth ? "積雪は山頂・他項目の地点未発表" : "観測地点未発表",
+    new_snow: measure(value("SNOWFALL", "昨晩からの降雪"), "cm"),
+    snow_depth, temperature: measure(value("TEMPERATURE", "気温"), "C"),
+    snow_quality: /^[-−—–－]|^(?:未発表|未取得)$/.test(quality) ? null : quality,
+  };
+}
+
 function record(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
 }
@@ -188,6 +215,7 @@ const adapters = new Map<string, Adapter>([
   ["kitanaganuma-rss", { resortName: "北長沼スキー場", url: kitanaganuma, format: "rss", parse: rss(kitanaganuma, false) }],
   ["kamui-html", html("カムイスキーリンクス", "https://www.kamui-skilinks.com/", /^(?:ゲレンデ情報|ゲレンデコンディション)/, { new_snow, snow_depth, temperature }, "昨晩から")],
   ["tomamu-html", html("星野リゾート トマム", "https://www.snowtomamu.jp/winter/ski/ski-slope/condition/", /^(?:ゲレンデコンディション|スキー場営業情報)/, four)],
+  ["sapporo-kokusai-html", { resortName: "札幌国際スキー場", url: "https://www.sapporo-kokusai.jp/", format: "html", parse: sapporoKokusai }],
   ["furano-json", { resortName: "富良野スキー場", url: "https://furapuri.com/ski/data.json", format: "json", parse: furano }],
   ["horotachi-rss", { resortName: "ほろたちスキー場", url: horotachi, format: "rss", parse: rss(horotachi, true) }],
 ]);

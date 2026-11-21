@@ -113,3 +113,23 @@ test("the worker skips wrong facility, URL or either missing permission before H
   }
   assert.equal(facilityAdapter("wakan-html"), undefined);
 });
+
+test("Sapporo Kokusai uses only the dated realtime cards and preserves the sole reported location", async () => {
+  const card = (value: string, label: string, japanese: string) =>
+    "<div><p>" + value + "</p><div><p>" + label + "</p><p>" + japanese + "</p></div></div>";
+  const sample = (stamp: string, snow: string) => '<section id="toprealtime"><p>' + stamp + "</p>"
+    + card(snow, "SNOWFALL", "昨晩からの降雪") + card("9m", "TOTAL SNOW ACCUMULATION", "総降雪量")
+    + card("65cm", "SNOW ACCUMULATION", "山頂積雪") + card("-2.5°c", "TEMPERATURE", "気温")
+    + card("圧雪", "SNOW CONDITIONS", "雪質") + "</section>"
+    + card("999cm", "SNOWFALL", "昨晩からの降雪");
+  const { row } = await ingest("sapporo-kokusai-html", sample("2026年11月21日09時 現在", "0<span>cm</span>"));
+  assert.deepEqual([row.new_snow_cm, row.snow_depth_cm, row.temperature_c, row.official_snow_quality], [0, 65, -2.5, "圧雪"]);
+  assert.equal(row.snowfall_period, "昨晩から");
+  assert.equal(row.published_at, "2026-11-21T00:00:00.000Z");
+  assert.equal(row.observed_at, null);
+  assert.equal(row.location_kind, "unspecified");
+  assert.match(row.location_name, /積雪は山頂/);
+  assert.equal((await ingest("sapporo-kokusai-html", sample("2026年11月21日09時 現在", "－"))).row.new_snow_cm, null);
+  assert.equal((await ingest("sapporo-kokusai-html", sample("2026年11月20日09時 現在", "0cm"))).row.status, "stale");
+  assert.equal((await ingest("sapporo-kokusai-html", sample("11月21日09時 現在", "0cm"))).row.status, "missing");
+});
