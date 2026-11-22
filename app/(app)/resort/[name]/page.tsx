@@ -11,6 +11,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { usePostDay } from "@/lib/use-post-day";
+import { useOfficialConditions } from "@/lib/use-official-conditions";
 import { POST_DAY_MS } from "@/lib/post-date";
 import { useResortMaster } from "@/lib/use-resort-master";
 import { postUrl, regionUrl } from "@/lib/resort-master";
@@ -63,6 +64,7 @@ function ResortPageContent() {
   const resort = master.data?.resorts.find((item) => item.name === resortName);
   const region = master.data?.regions.find((item) => item.code === resort?.region_code);
   const canonicalName = resort?.name;
+  const official = useOfficialConditions(!!resort?.is_active);
   const returnTo = safeHomeReturn(searchParams.get("returnTo")) ?? (resort ? regionUrl(resort.region_code) : "/");
 
   const [postState, setPostState] = useState<{ name: string; day: number; posts: SnowPost[]; error: string }>({ name: "", day: 0, posts: [], error: "" });
@@ -143,7 +145,7 @@ function ResortPageContent() {
 
         <PrototypeNotice />
 
-        <OfficialConditionsSection />
+        <OfficialConditionsSection condition={official.rows.find(row => row.resort_id === resort?.id)} now={official.now} error={official.error} />
 
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-semibold">

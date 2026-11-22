@@ -32,10 +32,15 @@ export function OfficialConditions({ condition, now }: { condition?: OfficialCon
   </div>;
 }
 
-export function OfficialConditionsSection() {
+export function OfficialConditionsSection({ condition, now, error }: {
+  condition?: OfficialCondition;
+  now?: Date | null;
+  error?: string;
+} = {}) {
   return <section aria-label="朝のコンディション（公式情報）" className="ui-card my-5 p-4">
     <h2 className="mb-2 font-bold">朝のコンディション（公式情報）</h2>
-    <p className="mb-3 text-xs leading-relaxed text-slate-600">公式情報は未取得です。現地投稿・架空サンプルからの補完は行っていません。</p>
-    <OfficialConditions />
+    {error ? <p role="alert" className="mb-3 text-xs text-red-700">{error}</p>
+      : !condition && <p className="mb-3 text-xs leading-relaxed text-slate-600">公式情報は未取得です。現地投稿・架空サンプルからの補完は行っていません。</p>}
+    <OfficialConditions condition={condition} now={now} />
   </section>;
 }
