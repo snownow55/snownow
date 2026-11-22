@@ -1,0 +1,66 @@
+name: Collect official conditions - Sapporo Kokusai
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: official-production-kokusai
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'snownow55/snownow' &&
+      github.ref == 'refs/heads/main' &&
+      github.workflow_ref == 'snownow55/snownow/.github/workflows/collect-official-kokusai.yml@refs/heads/main'
+    # Before adding the secret, restrict this Environment to the main BRANCH
+    # using GitHub Settings > Environments > Deployment branches and tags.
+    # Store the key here, never as a repository-wide secret.
+    environment: official-production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out dispatched main revision
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+
+      - name: Install collector dependencies without lifecycle scripts
+        run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+
+      - name: Verify production source and collect once
+        shell: bash
+        env:
+          OFFICIAL_SUPABASE_URL: ${{ vars.OFFICIAL_SUPABASE_URL }}
+          OFFICIAL_APPROVED_SOURCES: ${{ vars.OFFICIAL_APPROVED_SOURCES }}
+          OFFICIAL_SUPABASE_SERVICE_KEY: ${{ secrets.OFFICIAL_SUPABASE_SERVICE_KEY }}
+        run: |
+          set -euo pipefail
+          node scripts/official-production-preflight.ts
+          collection_exit=0
+          npm run --silent collect:official > "$RUNNER_TEMP/kokusai-collection-result.json" || collection_exit=$?
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          import { join } from 'node:path';
+          import { validateSingleCollectionResult } from './scripts/official-production-preflight.ts';
+          try {
+            const result = JSON.parse(readFileSync(join(process.env.RUNNER_TEMP, 'kokusai-collection-result.json'), 'utf8'));
+            validateSingleCollectionResult(result);
+            console.log(JSON.stringify([{ id: 1, result: result[0].result }]));
+            console.log('Storage accepted. Verify today\'s public API and list/detail display separately.');
+          } catch {
+            console.error('Collection was not saved successfully. No other source will be attempted.');
+            process.exitCode = 1;
+          }
+          NODE
+          test "$collection_exit" -eq 0
