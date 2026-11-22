@@ -25,8 +25,8 @@ export function validateProductionConfiguration(env: Environment) {
 
 export function validateKokusaiSource(value: unknown) {
   const source = value as Record<string, unknown> | null;
-  if (!source || source.id !== 1 || !Number.isSafeInteger(source.resort_id)
-    || Number(source.resort_id) <= 0 || source.resort_name !== "札幌国際スキー場"
+  if (!source || source.id !== 1 || source.resort_id !== 11
+    || source.resort_name !== "札幌国際スキー場"
     || source.source_url !== sourceUrl || source.adapter_key !== "sapporo-kokusai-html"
     || source.enabled !== true || source.access_permission !== "allowed"
     || source.publication_permission !== "allowed") {
@@ -39,6 +39,21 @@ export function validateSingleCollectionResult(value: unknown) {
     || !["saved", "duplicate"].includes(value[0]?.result) || value[0]?.failure) {
     throw new Error("SINGLE_COLLECTION_NOT_SAVED");
   }
+}
+
+// Keep only bounded result codes: never log raw payloads, SDK errors or headers.
+export function collectionLogSummary(value: unknown) {
+  const entry = Array.isArray(value) && value.length === 1 ? value[0] : null;
+  if (!entry || entry.id !== 1) return [{ id: 1, result: "invalid_result" }];
+  const results = ["saved", "duplicate", "superseded", "permission_changed", "skipped", "database_error"];
+  const failures = ["timeout", "network", "http", "invalid_response"];
+  return [{
+    id: 1,
+    result: results.includes(entry.result) ? entry.result as string : "invalid_result",
+    ...(entry.failure ? {
+      failure: failures.includes(entry.failure) ? entry.failure as string : "unrecognized_failure",
+    } : {}),
+  }];
 }
 
 export async function runProductionPreflight(

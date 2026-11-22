@@ -2,6 +2,10 @@ name: Collect official conditions - Sapporo Kokusai
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '12 22 * * *' # 07:12 JST, following calendar day
+    - cron: '18 23 * * *' # 08:18 JST, following calendar day
+    - cron: '12 0 * * *'  # 09:12 JST, same calendar day
 
 permissions:
   contents: read
@@ -13,7 +17,7 @@ concurrency:
 jobs:
   collect:
     if: >-
-      github.event_name == 'workflow_dispatch' &&
+      (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') &&
       github.repository == 'snownow55/snownow' &&
       github.ref == 'refs/heads/main' &&
       github.workflow_ref == 'snownow55/snownow/.github/workflows/collect-official-kokusai.yml@refs/heads/main'
@@ -24,7 +28,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Check out dispatched main revision
+      - name: Check out trusted main revision
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ github.sha }}
@@ -52,11 +56,11 @@ jobs:
           node --input-type=module <<'NODE'
           import { readFileSync } from 'node:fs';
           import { join } from 'node:path';
-          import { validateSingleCollectionResult } from './scripts/official-production-preflight.ts';
+          import { collectionLogSummary, validateSingleCollectionResult } from './scripts/official-production-preflight.ts';
           try {
             const result = JSON.parse(readFileSync(join(process.env.RUNNER_TEMP, 'kokusai-collection-result.json'), 'utf8'));
+            console.log(JSON.stringify(collectionLogSummary(result)));
             validateSingleCollectionResult(result);
-            console.log(JSON.stringify([{ id: 1, result: result[0].result }]));
             console.log('Storage accepted. Verify today\'s public API and list/detail display separately.');
           } catch {
             console.error('Collection was not saved successfully. No other source will be attempted.');
