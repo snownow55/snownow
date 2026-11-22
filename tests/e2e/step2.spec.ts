@@ -17,7 +17,7 @@ for (const width of [390, 1280]) {
     await page.clock.install();
     await login(page);
     await page.goto("/post?resort=" + encodeURIComponent("オーンズ"));
-    await expect(page.locator("#snow-type option")).toHaveText(["パウダー", "圧雪", "硬めの圧雪", "アイスバーン", "ザラメ", "シャバ雪・べちゃ雪", "みぞれ・雨"]);
+    await expect(page.locator("#snow-type option")).toHaveText(["パウダー", "圧雪", "硬めの圧雪", "アイスバーン", "湿雪", "ザラメ", "シャバ雪・べちゃ雪", "みぞれ・雨"]);
     await expect(page.getByRole("button", { name: "投稿する", exact: true })).toBeEnabled();
     const responses = await Promise.all([input, { ...input, resort: "キロロ" }].map((data) => page.request.post("/api/posts", { data, headers: { Origin: "http://127.0.0.1:3100" } })));
     expect(responses.map((r) => r.status()).sort()).toEqual([201, 429]);

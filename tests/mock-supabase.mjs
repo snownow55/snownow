@@ -201,7 +201,7 @@ http
       const result = { allowed: seconds === 0, serverTime: new Date().toISOString(), nextAllowedAt: lastSuccess ? new Date(next).toISOString() : null, retryAfterSeconds: seconds };
       if (url.pathname.endsWith("posting_status") || seconds > 0) return respond(result);
       const payload = body.payload;
-      if (!payload || payload.snow_type === "湿雪" || Object.hasOwn(payload, "condition") || !resorts.some((r) => r.name === payload.resort && r.is_active)) return respond({ code: "22023", message: "Invalid post" }, 400);
+      if (!payload || Object.hasOwn(payload, "condition") || !resorts.some((r) => r.name === payload.resort && r.is_active)) return respond({ code: "22023", message: "Invalid post" }, 400);
       inserts++;
       lastSuccess = Date.now();
       posts.push({ ...payload, id: posts.length + 1, created_at: new Date(lastSuccess).toISOString() });

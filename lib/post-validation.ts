@@ -29,17 +29,17 @@ export type PostInput = {
   comment: string;
 };
 
-export function validPost(value: unknown, restoringLegacy = false): value is PostInput {
+export function validPost(value: unknown, restoringLegacy = false, allowedChoices = choices): value is PostInput {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const post = value as Record<string, unknown>;
   if (
-    Object.keys(post).some((key) => !Object.hasOwn(choices, key) && key !== "comment" && key !== "resort")
+    Object.keys(post).some((key) => !Object.hasOwn(allowedChoices, key) && key !== "comment" && key !== "resort")
   )
     return false;
   return (
     // Existence and active status are checked against the DB in the API.
     typeof post.resort === "string" && post.resort.trim().length > 0 && post.resort.length <= 200 &&
-    Object.entries(choices).every(
+    Object.entries(allowedChoices).every(
       ([key, values]) =>
         typeof post[key] === "string" && (values.includes(post[key] as string)
           || (restoringLegacy && key === "snow_type" && post[key] === "湿雪")),

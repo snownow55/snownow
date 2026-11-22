@@ -2,7 +2,7 @@ import { serverSupabase } from "@/lib/supabase-server";
 import { canPost } from "@/lib/auth-policy";
 import { isAllowedPostOrigin } from "@/lib/site-origin";
 import { postingStatus } from "@/lib/posting-limit";
-import { transitionalPost, validPost } from "@/lib/post-validation";
+import { transitionalPost, validPost } from "@/lib/app-post-validation";
 import { findResort } from "@/lib/resort-master";
 
 // Bound the actual UTF-8 bytes while reading, without trusting Content-Length.

@@ -5,7 +5,7 @@ import { Suspense, useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/auth-provider";
-import { choices } from "@/lib/post-validation";
+import { choices } from "@/lib/app-post-validation";
 import { localPostingDeadline, postingStatus, remainingPostTime } from "@/lib/posting-limit";
 import { canPost } from "@/lib/auth-policy";
 import { useResortMaster } from "@/lib/use-resort-master";

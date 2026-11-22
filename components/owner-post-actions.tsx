@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { choices } from "@/lib/post-validation";
+import { choices } from "@/lib/app-post-validation";
 import type { PostEdit } from "@/lib/post-edit";
 export function OwnerPostActions({id,initial,onChanged}:{id:number;initial:PostEdit;onChanged:()=>void}) {
  const [editing,setEditing]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState("");
@@ -21,7 +21,7 @@ export function OwnerPostActions({id,initial,onChanged}:{id:number;initial:PostE
     {Object.entries(choices).map(([key,options])=><label key={key} className="mb-3 block text-sm">
      {({area:'場所',snow_type:'雪質',snowfall:'営業開始後の降雪',roughness:'荒れ具合',crowd:'混雑'} as Record<string,string>)[key]}
      <select className="ui-input" value={fields[key as keyof PostEdit]} onChange={e=>setFields({...fields,[key]:e.target.value})}>
-      {(key==='snow_type' && initial.snow_type==='湿雪'?[...options,'湿雪']:options).map(v=><option key={v}>{v}</option>)}
+      {options.map(v=><option key={v}>{v}</option>)}
      </select>
     </label>)}
     <label className="block text-sm">コメント<textarea className="ui-input" maxLength={1000} value={fields.comment} onChange={e=>setFields({...fields,comment:e.target.value})}/></label>

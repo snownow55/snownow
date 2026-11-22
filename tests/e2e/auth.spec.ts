@@ -88,11 +88,14 @@ test("login preserves selected resort and verified user can submit; logout remov
   expect(await page.getByLabel("営業開始後の降雪", { exact: true }).locator("option").evaluateAll(
     (options) => options.map((option) => (option as HTMLOptionElement).value),
   )).toEqual(["ほぼ無し", "うっすら積もった", "そこそこ積もった", "かなり積もった", "分からない"]);
+  await page.getByLabel("雪質", { exact: true }).selectOption("湿雪");
   const postRequest = page.waitForRequest((request) =>
     new URL(request.url()).pathname === "/api/posts" && request.method() === "POST",
   );
   await page.getByRole("button", { name: "投稿する", exact: true }).click();
-  expect((await postRequest).postDataJSON().snowfall).toBe("ほぼ無し");
+  const posted = (await postRequest).postDataJSON();
+  expect(posted.snowfall).toBe("ほぼ無し");
+  expect(posted.snow_type).toBe("湿雪");
   await expect(page).toHaveURL("http://127.0.0.1:3100/resort/" + encodeURIComponent("キロロ"));
   await page.getByRole("button", { name: "ログアウト" }).click();
   await expect(
