@@ -10,6 +10,8 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { usePostDay } from "@/lib/use-post-day";
+import { POST_DAY_MS } from "@/lib/post-date";
 import { useResortMaster } from "@/lib/use-resort-master";
 import { postUrl, regionUrl } from "@/lib/resort-master";
 type SnowPost = {
@@ -44,6 +46,7 @@ type SnowPost = {
 
 function ResortPageContent() {
   const searchParams = useSearchParams();
+  const postDay = usePostDay();
   const { user } = useAuth();
   const [revision,setRevision]=useState(0);
   const [ownership,setOwnership]=useState<{userId:string;ids:number[]}|null>(null);
@@ -62,13 +65,13 @@ function ResortPageContent() {
   const canonicalName = resort?.name;
   const returnTo = safeHomeReturn(searchParams.get("returnTo")) ?? (resort ? regionUrl(resort.region_code) : "/");
 
-  const [postState, setPostState] = useState<{ name: string; posts: SnowPost[]; error: string }>({ name: "", posts: [], error: "" });
-  const posts = postState.name === canonicalName ? postState.posts : [];
-  const postsLoading = postState.name !== canonicalName;
-  const postsError = postState.name === canonicalName ? postState.error : "";
+  const [postState, setPostState] = useState<{ name: string; day: number; posts: SnowPost[]; error: string }>({ name: "", day: 0, posts: [], error: "" });
+  const posts = postState.name === canonicalName && postState.day === postDay ? postState.posts : [];
+  const postsLoading = postState.name !== canonicalName || postState.day !== postDay;
+  const postsError = postState.name === canonicalName && postState.day === postDay ? postState.error : "";
 
  useEffect(() => {
-  if (!canonicalName) return;
+  if (!canonicalName || !postDay) return;
   let active = true;
   async function loadPosts() {
     if (!supabase) throw new Error("Unavailable");
@@ -76,6 +79,8 @@ function ResortPageContent() {
       .from("snow_posts")
       .select("id,resort,area,snow_type,snowfall,roughness,crowd,comment,created_at,updated_at")
       .eq("resort", canonicalName)
+      .gte("created_at", new Date(postDay).toISOString())
+      .lt("created_at", new Date(postDay + POST_DAY_MS).toISOString())
       .order("created_at", { ascending: false });
 
     if (error || !Array.isArray(data)) throw new Error("Post read failed");
@@ -94,14 +99,14 @@ function ResortPageContent() {
       updatedAt: post.updated_at ?? null,
     }));
 
-    if (active) setPostState({ name: canonicalName!, posts: formattedPosts, error: "" });
+    if (active) setPostState({ name: canonicalName!, day: postDay, posts: formattedPosts, error: "" });
   }
 
   loadPosts().catch(() => {
-    if (active) setPostState({ name: canonicalName, posts: [], error: "投稿情報を取得できませんでした。" });
+    if (active) setPostState({ name: canonicalName, day: postDay, posts: [], error: "投稿情報を取得できませんでした。" });
   });
   return () => { active = false; };
-}, [canonicalName, revision]);
+}, [canonicalName, revision, postDay]);
 
   if (master.loading) return <p role="status" className="p-6">スキー場を読み込んでいます…</p>;
   if (master.error) return <PageShell className="p-6">

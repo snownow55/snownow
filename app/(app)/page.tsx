@@ -6,6 +6,7 @@ import { PageShell } from "@/components/ui";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { usePostDay } from "@/lib/use-post-day";
 import { useResortMaster } from "@/lib/use-resort-master";
 import { useOfficialConditions } from "@/lib/use-official-conditions";
 import { useRegionPreferences } from "@/lib/use-region-preferences";
@@ -21,6 +22,7 @@ function searchText(value: string) {
 
 function Home() {
   const searchParams = useSearchParams();
+  const postDay = usePostDay();
   const master = useResortMaster();
   const preferences = useRegionPreferences();
   const orderedRegions = prioritizeRegions(master.data?.regions ?? [], preferences.codes);
@@ -48,7 +50,7 @@ function Home() {
     sort: sortOrder,
     ...(search ? { search } : {}),
   }).toString()}`;
-  const postKey = JSON.stringify(resortsInRegion.map((resort) => resort.name));
+  const postKey = JSON.stringify([postDay, resortsInRegion.map((resort) => resort.name)]);
   const [postState, setPostState] = useState<{
     key: string;
     summaries: Map<string, ResortPostSummary>;
@@ -69,9 +71,9 @@ function Home() {
   const visibleResorts = resorts.filter((resort) => [resort.name, resort.display_name, Object.hasOwn(RESORT_READINGS, resort.name) ? RESORT_READINGS[resort.name] : ""].some((name) => searchText(name).includes(query)));
 
   useEffect(() => {
-    if (tab !== "live" || !resortsInRegion.length) return;
+    if (tab !== "live" || !postDay || !resortsInRegion.length) return;
     const controller = new AbortController();
-    loadResortPostSummaries(supabase, resortsInRegion, controller.signal).then(
+    loadResortPostSummaries(supabase, resortsInRegion, controller.signal, postDay).then(
       (summaries) => {
         if (!controller.signal.aborted) setPostState({ key: postKey, summaries, error: "" });
       },
@@ -80,7 +82,7 @@ function Home() {
       },
     );
     return () => controller.abort();
-  }, [resortsInRegion, postKey, tab]);
+  }, [resortsInRegion, postKey, tab, postDay]);
 
 
   return (

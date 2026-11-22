@@ -12,7 +12,7 @@ test('owner edit/delete confirmation and immediate refresh; no controls for gues
    deleteCalls++;deleted=true;return route.fulfill({json:{ok:true}});
   }
   if(u.pathname==='/rest/v1/snow_posts'){
-   const base={resort:'オーンズ',area:'中腹',snow_type:'パウダー',snowfall:'ほぼ無し',roughness:'きれい',crowd:'普通',created_at:'2026-11-20T00:00:00Z',updated_at:null};
+   const base={resort:'オーンズ',area:'中腹',snow_type:'パウダー',snowfall:'ほぼ無し',roughness:'きれい',crowd:'普通',created_at:new Date().toISOString(),updated_at:null};
    return route.fulfill({json:[...(deleted?[]:[{...base,id:1,comment:edited?'owner edited':'owner original',updated_at:edited?'2026-11-21T00:00:00Z':null}]),{...base,id:2,comment:'other author'}]});
   }
   return route.continue();

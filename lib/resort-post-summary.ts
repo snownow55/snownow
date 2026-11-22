@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Resort } from "./resort-master";
+import { japanPostDayStart, POST_DAY_MS } from "./post-date.ts";
 
 export type LatestSnowPost = {
   id: number;
@@ -32,11 +33,15 @@ export async function loadResortPostSummaries(
   client: Pick<SupabaseClient, "from"> | null,
   resorts: readonly Resort[],
   signal?: AbortSignal,
+  dayStart = japanPostDayStart(),
 ): Promise<Map<string, ResortPostSummary>> {
   if (!client) throw new Error(POSTS_ERROR);
   const entries = await Promise.all(resorts.map(async (resort) => {
     let query = client.from("snow_posts").select(columns, { count: "exact" })
-      .eq("resort", resort.name).order("created_at", { ascending: false })
+      .eq("resort", resort.name)
+      .gte("created_at", new Date(dayStart).toISOString())
+      .lt("created_at", new Date(dayStart + POST_DAY_MS).toISOString())
+      .order("created_at", { ascending: false })
       .order("id", { ascending: false }).limit(1);
     if (signal) query = query.abortSignal(signal);
     const { data, error, count } = await query;

@@ -18,11 +18,12 @@ const initialPosts = ["オーンズ", "キロロ"].map((resort, index) => ({
   id: index + 1, resort, area: "山頂・上部", snow_type: "パウダー", snowfall: "ほぼ無し",
   roughness: "きれい", crowd: "空いている", condition: "★★★★★",
   comment: index === 0 ? "<script>fixture</script>" : "キロロの既存投稿",
-  created_at: "2026-10-09T00:00:00Z",
+  created_at: new Date().toISOString(), updated_at: null,
 }));
 let resorts = structuredClone(initialResorts);
 let posts = structuredClone(initialPosts);
 let failedTables = new Set();
+let postReadNow = null;
 const uid = "11111111-1111-4111-8111-111111111111";
 const user = {
   id: uid,
@@ -101,7 +102,9 @@ http
         logoutFails = false;
         signupSession = false;
         failedTables = new Set();
+        postReadNow = null;
       }
+      if (body.postReadNow !== undefined) postReadNow = body.postReadNow;
       if (body.signupSession !== undefined) signupSession = body.signupSession;
       if (body.logoutFails !== undefined) logoutFails = body.logoutFails;
       if (body.lastSuccess !== undefined) lastSuccess = body.lastSuccess;
@@ -114,8 +117,12 @@ http
     const table = url.pathname.startsWith("/rest/v1/") ? url.pathname.slice("/rest/v1/".length) : null;
     if (failedTables.has(table)) return respond({ message: "Fixture read failure" }, 500);
     function sendRows(source) {
-      let rows = source.filter((row) => [...url.searchParams].every(([key, value]) =>
-        !value.startsWith("eq.") || String(row[key]) === value.slice(3)));
+      let rows = source.filter((row) => [...url.searchParams].every(([key, value]) => {
+        if (value.startsWith("eq.")) return String(row[key]) === value.slice(3);
+        if (key === "created_at" && value.startsWith("gte.")) return Date.parse(row[key]) >= Date.parse(value.slice(4));
+        if (key === "created_at" && value.startsWith("lt.")) return Date.parse(row[key]) < Date.parse(value.slice(3));
+        return true;
+      }));
       const orders = (url.searchParams.get("order") ?? "").split(",").filter(Boolean);
       rows = [...rows].sort((left, right) => {
         for (const order of orders) {
@@ -202,7 +209,9 @@ http
     }
     if (url.pathname === "/rest/v1/snow_posts") {
       if (req.method !== "GET") return respond({ code: "42501", message: "Direct write denied" }, 403);
-      return sendRows(posts);
+      const now = postReadNow ?? Date.now();
+      const start = Math.floor((now + 9 * 3600000) / 86400000) * 86400000 - 9 * 3600000;
+      return sendRows(posts.filter(p => Date.parse(p.created_at) >= start && Date.parse(p.created_at) < start + 86400000));
     }
     respond({ msg: "Unknown fixture route" }, 404);
   })

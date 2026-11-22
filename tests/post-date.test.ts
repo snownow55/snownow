@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatPostAge, formatPostDate } from "../lib/post-date.ts";
+import { formatPostAge, formatPostDate, japanPostDayStart, POST_DAY_MS } from "../lib/post-date.ts";
 
 test("stored timestamps are formatted in Japan time with the specified month/day and zero-padded clock", () => {
   assert.equal(formatPostDate("2026-10-14T12:01:00Z"), "10月14日 21:01");
@@ -23,4 +23,13 @@ test("relative ages use the stored date, handle minute/hour/day boundaries and i
   assert.equal(formatPostAge("invalid", start), "―");
   assert.equal(formatPostAge("", start), "―");
   assert.equal(formatPostAge(date, NaN), "―");
+});
+
+test("post days reset at JST midnight, independent of the host time zone", () => {
+  const start = Date.parse("2026-11-21T15:00:00Z");
+  assert.equal(japanPostDayStart(start - 1), start - POST_DAY_MS);
+  assert.equal(japanPostDayStart(start), start);
+  assert.equal(japanPostDayStart(start + POST_DAY_MS - 1), start);
+  assert.equal(japanPostDayStart(start + POST_DAY_MS), start + POST_DAY_MS);
+  assert.equal(japanPostDayStart(Date.parse("2026-12-31T15:00:00Z")), Date.parse("2026-12-31T15:00:00Z"));
 });

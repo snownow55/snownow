@@ -24,3 +24,11 @@ export function formatPostAge(createdAt: string, now = Date.now()): string {
   const hours = Math.floor(minutes / 60);
   return hours < 24 ? `${hours}時間前` : `${Math.floor(hours / 24)}日前`;
 }
+
+const JST_OFFSET = 9 * 60 * 60 * 1000;
+export const POST_DAY_MS = 24 * 60 * 60 * 1000;
+
+// Asia/Tokyo uses UTC+09:00 without daylight saving time.
+export function japanPostDayStart(now = Date.now()): number {
+  return Math.floor((now + JST_OFFSET) / POST_DAY_MS) * POST_DAY_MS - JST_OFFSET;
+}

@@ -1,10 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createClient } from "@supabase/supabase-js";
+import { japanPostDayStart, POST_DAY_MS } from "../lib/post-date.ts";
 import { loadResortPostSummaries } from "../lib/resort-post-summary.ts";
 
 const resort = { id: 1, name: "オーンズ", display_name: "スノークルーズオーンズ", region_code: "sapporo", sort_order: 6, is_active: true };
-const latest = { id: 1201, resort: resort.name, area: "中腹", snow_type: "パウダー", snowfall: "ほぼ無し", roughness: "きれい", crowd: "空いている", comment: "最新の現地コメント", created_at: "2026-10-11T00:00:00.000001Z" };
+const latest = { id: 1201, resort: resort.name, area: "中腹", snow_type: "パウダー", snowfall: "ほぼ無し", roughness: "きれい", crowd: "空いている", comment: "最新の現地コメント", created_at: new Date(japanPostDayStart() + 1000).toISOString() };
 function client(response: (url: URL, init?: RequestInit) => Response) {
   return createClient("http://127.0.0.1:54321", "sb_publishable_unit_fixture_only", {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
@@ -23,6 +24,8 @@ test("latest reads filter canonical resorts before limit and keep exact counts b
     assert.equal(init?.method, "GET");
     assert.equal(url.searchParams.get("order"), "created_at.desc,id.desc");
     assert.equal(url.searchParams.get("limit"), "1");
+    assert.equal(url.searchParams.get("created_at"), "gte." + new Date(japanPostDayStart()).toISOString());
+    assert.deepEqual(url.searchParams.getAll("created_at"), ["gte." + new Date(japanPostDayStart()).toISOString(), "lt." + new Date(japanPostDayStart() + POST_DAY_MS).toISOString()]);
     assert.match(new Headers(init?.headers).get("prefer")!, /count=exact/);
     assert.equal(url.searchParams.get("select")!.includes("condition"), false);
     return url.searchParams.get("resort") === "eq.オーンズ" ? rows([latest], 1201) : rows([], 0);
