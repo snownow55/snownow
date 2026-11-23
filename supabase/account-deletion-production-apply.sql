@@ -6,78 +6,7 @@ SET LOCAL statement_timeout = '30s';
 SET LOCAL TIME ZONE 'UTC';
 DO $production_apply$
 DECLARE
-  source_sql text := $source$-- Preparation only: apply to the reviewed development project first.
--- Run inside the migration runner's transaction. Dashboard execution requires
--- a BEGIN/COMMIT wrapper and migration-history registration in that same transaction.
--- Reviewed legacy table, when present, is included only for its user_id -> auth.users FK.
--- The legacy resort FK is checked and left untouched. No archive rows are deleted now.
--- Changing these FKs does NOT delete users or posts. Future Auth hard deletion
--- (including Dashboard/Admin API deletion) will cascade to the user's data.
-SET LOCAL lock_timeout = '5s';
-SET LOCAL statement_timeout = '30s';
-DO $migration$
-DECLARE target regclass; relation regclass; constraints integer; fk record;
-  legacy regclass; resort_fk_before text; resort_fk_after text;
-  reviewed regclass[] := ARRAY['snownow_private.snow_posts'::regclass,
-    'snownow_private.post_limits'::regclass,'public.user_region_preferences'::regclass];
-BEGIN
-  target := to_regclass('auth.users');
-  IF target IS NULL THEN RAISE EXCEPTION 'ACCOUNT_DELETION_AUTH_TABLE_MISSING'; END IF;
-  legacy := to_regclass('snownow_private.legacy_authenticated_snow_posts');
-  IF legacy IS NOT NULL THEN
-    reviewed := array_append(reviewed,legacy);
-    SELECT count(*) INTO constraints FROM pg_constraint
-      WHERE contype='f' AND conrelid=legacy AND confrelid<>target;
-    IF constraints<>1 THEN RAISE EXCEPTION 'ACCOUNT_DELETION_UNREVIEWED_LEGACY_FK'; END IF;
-    SELECT pg_get_constraintdef(c.oid) INTO resort_fk_before
-    FROM pg_constraint c WHERE c.contype='f' AND c.conrelid=legacy
-      AND c.conname='snow_posts_resort_fkey' AND c.confrelid='public.resorts'::regclass
-      AND c.confupdtype='c' AND c.confdeltype='r' AND c.convalidated
-      AND c.conkey=ARRAY[(SELECT attnum FROM pg_attribute WHERE attrelid=legacy AND attname='resort' AND NOT attisdropped)]::smallint[]
-      AND c.confkey=ARRAY[(SELECT attnum FROM pg_attribute WHERE attrelid='public.resorts'::regclass AND attname='name' AND NOT attisdropped)]::smallint[];
-    IF resort_fk_before IS NULL THEN RAISE EXCEPTION 'ACCOUNT_DELETION_LEGACY_RESORT_FK_MISMATCH'; END IF;
-  END IF;
-  IF EXISTS (
-    SELECT 1 FROM pg_trigger WHERE NOT tgisinternal AND tgenabled<>'D'
-      AND (tgrelid=target OR tgrelid=ANY(reviewed))
-  ) THEN RAISE EXCEPTION 'ACCOUNT_DELETION_UNREVIEWED_TRIGGER'; END IF;
-  -- Stop on unknown dependencies.
-  IF EXISTS (
-    SELECT 1 FROM pg_constraint c JOIN pg_class t ON t.oid=c.conrelid
-    JOIN pg_namespace n ON n.oid=t.relnamespace
-    WHERE c.contype='f' AND c.confrelid=target AND n.nspname NOT IN ('auth','storage')
-      AND NOT (c.conrelid=ANY(reviewed))
-  ) THEN RAISE EXCEPTION 'ACCOUNT_DELETION_UNREVIEWED_REFERENCE'; END IF;
-  IF EXISTS (SELECT 1 FROM pg_constraint WHERE contype='f' AND confrelid=ANY(reviewed)) THEN
-    RAISE EXCEPTION 'ACCOUNT_DELETION_UNREVIEWED_CHILD_REFERENCE'; END IF;
-  FOREACH relation IN ARRAY reviewed LOOP
-    SELECT count(*) INTO constraints FROM pg_constraint c
-    WHERE c.conrelid=relation AND c.confrelid=target AND c.contype='f';
-    IF constraints<>1 THEN RAISE EXCEPTION 'ACCOUNT_DELETION_UNEXPECTED_FK_COUNT'; END IF;
-    SELECT c.* INTO fk FROM pg_constraint c
-    WHERE c.conrelid=relation AND c.confrelid=target AND c.contype='f';
-    IF fk.conkey IS DISTINCT FROM ARRAY[(SELECT attnum FROM pg_attribute
-        WHERE attrelid=relation AND attname='user_id' AND NOT attisdropped)]::smallint[]
-      OR fk.confkey IS DISTINCT FROM ARRAY[(SELECT attnum FROM pg_attribute
-        WHERE attrelid=target AND attname='id' AND NOT attisdropped)]::smallint[]
-      OR NOT fk.convalidated OR fk.condeferrable OR fk.confupdtype<>'a'
-      OR fk.confmatchtype<>'s' OR fk.confdeltype NOT IN ('a','r','c') THEN
-      RAISE EXCEPTION 'ACCOUNT_DELETION_UNEXPECTED_FK_SHAPE';
-    END IF;
-    IF fk.confdeltype<>'c' THEN
-      EXECUTE format('ALTER TABLE %s DROP CONSTRAINT %I',relation,fk.conname);
-      EXECUTE format('ALTER TABLE %s ADD CONSTRAINT %I FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE',relation,fk.conname);
-    END IF;
-  END LOOP;
-  IF legacy IS NOT NULL THEN
-    SELECT pg_get_constraintdef(oid) INTO resort_fk_after FROM pg_constraint
-      WHERE conrelid=legacy AND conname='snow_posts_resort_fkey' AND contype='f';
-    IF resort_fk_after IS DISTINCT FROM resort_fk_before THEN
-      RAISE EXCEPTION 'ACCOUNT_DELETION_RESORT_FK_CHANGED'; END IF;
-  END IF;
-END;
-$migration$;
-$source$;
+  source_sql text := convert_from(decode('LS0gUHJlcGFyYXRpb24gb25seTogYXBwbHkgdG8gdGhlIHJldmlld2VkIGRldmVsb3BtZW50IHByb2plY3QgZmlyc3QuCi0tIFJ1biBpbnNpZGUgdGhlIG1pZ3JhdGlvbiBydW5uZXIncyB0cmFuc2FjdGlvbi4gRGFzaGJvYXJkIGV4ZWN1dGlvbiByZXF1aXJlcwotLSBhIEJFR0lOL0NPTU1JVCB3cmFwcGVyIGFuZCBtaWdyYXRpb24taGlzdG9yeSByZWdpc3RyYXRpb24gaW4gdGhhdCBzYW1lIHRyYW5zYWN0aW9uLgotLSBSZXZpZXdlZCBsZWdhY3kgdGFibGUsIHdoZW4gcHJlc2VudCwgaXMgaW5jbHVkZWQgb25seSBmb3IgaXRzIHVzZXJfaWQgLT4gYXV0aC51c2VycyBGSy4KLS0gVGhlIGxlZ2FjeSByZXNvcnQgRksgaXMgY2hlY2tlZCBhbmQgbGVmdCB1bnRvdWNoZWQuIE5vIGFyY2hpdmUgcm93cyBhcmUgZGVsZXRlZCBub3cuCi0tIENoYW5naW5nIHRoZXNlIEZLcyBkb2VzIE5PVCBkZWxldGUgdXNlcnMgb3IgcG9zdHMuIEZ1dHVyZSBBdXRoIGhhcmQgZGVsZXRpb24KLS0gKGluY2x1ZGluZyBEYXNoYm9hcmQvQWRtaW4gQVBJIGRlbGV0aW9uKSB3aWxsIGNhc2NhZGUgdG8gdGhlIHVzZXIncyBkYXRhLgpTRVQgTE9DQUwgbG9ja190aW1lb3V0ID0gJzVzJzsKU0VUIExPQ0FMIHN0YXRlbWVudF90aW1lb3V0ID0gJzMwcyc7CkRPICRtaWdyYXRpb24kCkRFQ0xBUkUgdGFyZ2V0IHJlZ2NsYXNzOyByZWxhdGlvbiByZWdjbGFzczsgY29uc3RyYWludHMgaW50ZWdlcjsgZmsgcmVjb3JkOwogIGxlZ2FjeSByZWdjbGFzczsgcmVzb3J0X2ZrX2JlZm9yZSB0ZXh0OyByZXNvcnRfZmtfYWZ0ZXIgdGV4dDsKICByZXZpZXdlZCByZWdjbGFzc1tdIDo9IEFSUkFZWydzbm93bm93X3ByaXZhdGUuc25vd19wb3N0cyc6OnJlZ2NsYXNzLAogICAgJ3Nub3dub3dfcHJpdmF0ZS5wb3N0X2xpbWl0cyc6OnJlZ2NsYXNzLCdwdWJsaWMudXNlcl9yZWdpb25fcHJlZmVyZW5jZXMnOjpyZWdjbGFzc107CkJFR0lOCiAgdGFyZ2V0IDo9IHRvX3JlZ2NsYXNzKCdhdXRoLnVzZXJzJyk7CiAgSUYgdGFyZ2V0IElTIE5VTEwgVEhFTiBSQUlTRSBFWENFUFRJT04gJ0FDQ09VTlRfREVMRVRJT05fQVVUSF9UQUJMRV9NSVNTSU5HJzsgRU5EIElGOwogIGxlZ2FjeSA6PSB0b19yZWdjbGFzcygnc25vd25vd19wcml2YXRlLmxlZ2FjeV9hdXRoZW50aWNhdGVkX3Nub3dfcG9zdHMnKTsKICBJRiBsZWdhY3kgSVMgTk9UIE5VTEwgVEhFTgogICAgcmV2aWV3ZWQgOj0gYXJyYXlfYXBwZW5kKHJldmlld2VkLGxlZ2FjeSk7CiAgICBTRUxFQ1QgY291bnQoKikgSU5UTyBjb25zdHJhaW50cyBGUk9NIHBnX2NvbnN0cmFpbnQKICAgICAgV0hFUkUgY29udHlwZT0nZicgQU5EIGNvbnJlbGlkPWxlZ2FjeSBBTkQgY29uZnJlbGlkPD50YXJnZXQ7CiAgICBJRiBjb25zdHJhaW50czw+MSBUSEVOIFJBSVNFIEVYQ0VQVElPTiAnQUNDT1VOVF9ERUxFVElPTl9VTlJFVklFV0VEX0xFR0FDWV9GSyc7IEVORCBJRjsKICAgIFNFTEVDVCBwZ19nZXRfY29uc3RyYWludGRlZihjLm9pZCkgSU5UTyByZXNvcnRfZmtfYmVmb3JlCiAgICBGUk9NIHBnX2NvbnN0cmFpbnQgYyBXSEVSRSBjLmNvbnR5cGU9J2YnIEFORCBjLmNvbnJlbGlkPWxlZ2FjeQogICAgICBBTkQgYy5jb25uYW1lPSdzbm93X3Bvc3RzX3Jlc29ydF9ma2V5JyBBTkQgYy5jb25mcmVsaWQ9J3B1YmxpYy5yZXNvcnRzJzo6cmVnY2xhc3MKICAgICAgQU5EIGMuY29uZnVwZHR5cGU9J2MnIEFORCBjLmNvbmZkZWx0eXBlPSdyJyBBTkQgYy5jb252YWxpZGF0ZWQKICAgICAgQU5EIGMuY29ua2V5PUFSUkFZWyhTRUxFQ1QgYXR0bnVtIEZST00gcGdfYXR0cmlidXRlIFdIRVJFIGF0dHJlbGlkPWxlZ2FjeSBBTkQgYXR0bmFtZT0ncmVzb3J0JyBBTkQgTk9UIGF0dGlzZHJvcHBlZCldOjpzbWFsbGludFtdCiAgICAgIEFORCBjLmNvbmZrZXk9QVJSQVlbKFNFTEVDVCBhdHRudW0gRlJPTSBwZ19hdHRyaWJ1dGUgV0hFUkUgYXR0cmVsaWQ9J3B1YmxpYy5yZXNvcnRzJzo6cmVnY2xhc3MgQU5EIGF0dG5hbWU9J25hbWUnIEFORCBOT1QgYXR0aXNkcm9wcGVkKV06OnNtYWxsaW50W107CiAgICBJRiByZXNvcnRfZmtfYmVmb3JlIElTIE5VTEwgVEhFTiBSQUlTRSBFWENFUFRJT04gJ0FDQ09VTlRfREVMRVRJT05fTEVHQUNZX1JFU09SVF9GS19NSVNNQVRDSCc7IEVORCBJRjsKICBFTkQgSUY7CiAgSUYgRVhJU1RTICgKICAgIFNFTEVDVCAxIEZST00gcGdfdHJpZ2dlciBXSEVSRSBOT1QgdGdpc2ludGVybmFsIEFORCB0Z2VuYWJsZWQ8PidEJwogICAgICBBTkQgKHRncmVsaWQ9dGFyZ2V0IE9SIHRncmVsaWQ9QU5ZKHJldmlld2VkKSkKICApIFRIRU4gUkFJU0UgRVhDRVBUSU9OICdBQ0NPVU5UX0RFTEVUSU9OX1VOUkVWSUVXRURfVFJJR0dFUic7IEVORCBJRjsKICAtLSBTdG9wIG9uIHVua25vd24gZGVwZW5kZW5jaWVzLgogIElGIEVYSVNUUyAoCiAgICBTRUxFQ1QgMSBGUk9NIHBnX2NvbnN0cmFpbnQgYyBKT0lOIHBnX2NsYXNzIHQgT04gdC5vaWQ9Yy5jb25yZWxpZAogICAgSk9JTiBwZ19uYW1lc3BhY2UgbiBPTiBuLm9pZD10LnJlbG5hbWVzcGFjZQogICAgV0hFUkUgYy5jb250eXBlPSdmJyBBTkQgYy5jb25mcmVsaWQ9dGFyZ2V0IEFORCBuLm5zcG5hbWUgTk9UIElOICgnYXV0aCcsJ3N0b3JhZ2UnKQogICAgICBBTkQgTk9UIChjLmNvbnJlbGlkPUFOWShyZXZpZXdlZCkpCiAgKSBUSEVOIFJBSVNFIEVYQ0VQVElPTiAnQUNDT1VOVF9ERUxFVElPTl9VTlJFVklFV0VEX1JFRkVSRU5DRSc7IEVORCBJRjsKICBJRiBFWElTVFMgKFNFTEVDVCAxIEZST00gcGdfY29uc3RyYWludCBXSEVSRSBjb250eXBlPSdmJyBBTkQgY29uZnJlbGlkPUFOWShyZXZpZXdlZCkpIFRIRU4KICAgIFJBSVNFIEVYQ0VQVElPTiAnQUNDT1VOVF9ERUxFVElPTl9VTlJFVklFV0VEX0NISUxEX1JFRkVSRU5DRSc7IEVORCBJRjsKICBGT1JFQUNIIHJlbGF0aW9uIElOIEFSUkFZIHJldmlld2VkIExPT1AKICAgIFNFTEVDVCBjb3VudCgqKSBJTlRPIGNvbnN0cmFpbnRzIEZST00gcGdfY29uc3RyYWludCBjCiAgICBXSEVSRSBjLmNvbnJlbGlkPXJlbGF0aW9uIEFORCBjLmNvbmZyZWxpZD10YXJnZXQgQU5EIGMuY29udHlwZT0nZic7CiAgICBJRiBjb25zdHJhaW50czw+MSBUSEVOIFJBSVNFIEVYQ0VQVElPTiAnQUNDT1VOVF9ERUxFVElPTl9VTkVYUEVDVEVEX0ZLX0NPVU5UJzsgRU5EIElGOwogICAgU0VMRUNUIGMuKiBJTlRPIGZrIEZST00gcGdfY29uc3RyYWludCBjCiAgICBXSEVSRSBjLmNvbnJlbGlkPXJlbGF0aW9uIEFORCBjLmNvbmZyZWxpZD10YXJnZXQgQU5EIGMuY29udHlwZT0nZic7CiAgICBJRiBmay5jb25rZXkgSVMgRElTVElOQ1QgRlJPTSBBUlJBWVsoU0VMRUNUIGF0dG51bSBGUk9NIHBnX2F0dHJpYnV0ZQogICAgICAgIFdIRVJFIGF0dHJlbGlkPXJlbGF0aW9uIEFORCBhdHRuYW1lPSd1c2VyX2lkJyBBTkQgTk9UIGF0dGlzZHJvcHBlZCldOjpzbWFsbGludFtdCiAgICAgIE9SIGZrLmNvbmZrZXkgSVMgRElTVElOQ1QgRlJPTSBBUlJBWVsoU0VMRUNUIGF0dG51bSBGUk9NIHBnX2F0dHJpYnV0ZQogICAgICAgIFdIRVJFIGF0dHJlbGlkPXRhcmdldCBBTkQgYXR0bmFtZT0naWQnIEFORCBOT1QgYXR0aXNkcm9wcGVkKV06OnNtYWxsaW50W10KICAgICAgT1IgTk9UIGZrLmNvbnZhbGlkYXRlZCBPUiBmay5jb25kZWZlcnJhYmxlIE9SIGZrLmNvbmZ1cGR0eXBlPD4nYScKICAgICAgT1IgZmsuY29uZm1hdGNodHlwZTw+J3MnIE9SIGZrLmNvbmZkZWx0eXBlIE5PVCBJTiAoJ2EnLCdyJywnYycpIFRIRU4KICAgICAgUkFJU0UgRVhDRVBUSU9OICdBQ0NPVU5UX0RFTEVUSU9OX1VORVhQRUNURURfRktfU0hBUEUnOwogICAgRU5EIElGOwogICAgSUYgZmsuY29uZmRlbHR5cGU8PidjJyBUSEVOCiAgICAgIEVYRUNVVEUgZm9ybWF0KCdBTFRFUiBUQUJMRSAlcyBEUk9QIENPTlNUUkFJTlQgJUknLHJlbGF0aW9uLGZrLmNvbm5hbWUpOwogICAgICBFWEVDVVRFIGZvcm1hdCgnQUxURVIgVEFCTEUgJXMgQUREIENPTlNUUkFJTlQgJUkgRk9SRUlHTiBLRVkgKHVzZXJfaWQpIFJFRkVSRU5DRVMgYXV0aC51c2VycyhpZCkgT04gREVMRVRFIENBU0NBREUnLHJlbGF0aW9uLGZrLmNvbm5hbWUpOwogICAgRU5EIElGOwogIEVORCBMT09QOwogIElGIGxlZ2FjeSBJUyBOT1QgTlVMTCBUSEVOCiAgICBTRUxFQ1QgcGdfZ2V0X2NvbnN0cmFpbnRkZWYob2lkKSBJTlRPIHJlc29ydF9ma19hZnRlciBGUk9NIHBnX2NvbnN0cmFpbnQKICAgICAgV0hFUkUgY29ucmVsaWQ9bGVnYWN5IEFORCBjb25uYW1lPSdzbm93X3Bvc3RzX3Jlc29ydF9ma2V5JyBBTkQgY29udHlwZT0nZic7CiAgICBJRiByZXNvcnRfZmtfYWZ0ZXIgSVMgRElTVElOQ1QgRlJPTSByZXNvcnRfZmtfYmVmb3JlIFRIRU4KICAgICAgUkFJU0UgRVhDRVBUSU9OICdBQ0NPVU5UX0RFTEVUSU9OX1JFU09SVF9GS19DSEFOR0VEJzsgRU5EIElGOwogIEVORCBJRjsKRU5EOwokbWlncmF0aW9uJDsK', 'base64'), 'UTF8');
   reviewed regclass[] := ARRAY[
     'snownow_private.snow_posts'::regclass,
     'snownow_private.post_limits'::regclass,
