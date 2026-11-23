@@ -9,8 +9,8 @@ export const metadata: Metadata = {
   applicationName: "SNOW VIKING",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: [{ url: "/pwa-icon/192", sizes: "192x192", type: "image/png" }],
-    apple: [{ url: "/pwa-icon/180", sizes: "180x180", type: "image/png" }],
+    icon: [{ url: "/icons/snow-viking-192-v2.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/icons/snow-viking-180-v2.png", sizes: "180x180", type: "image/png" }],
   },
   appleWebApp: { capable: true, title: "SNOW VIKING", statusBarStyle: "default" },
 };
