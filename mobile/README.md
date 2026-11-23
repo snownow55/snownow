@@ -51,7 +51,7 @@ Apple signing credentials belong in Codemagic's protected App Store Connect inte
 
 ## Icon provenance
 
-Original `public/snow-viking-logo.png` is unchanged. The mascot crop is (100,155)-(558,505) in its original 2048x682 coordinates, with a stepped right boundary excluding the wordmark. No artwork is regenerated. The exported mascot is trimmed by (7,10)-(455,349) to remove remaining blank edges. Normal icons use 94% width; maskable uses 64%, with the visible artwork checked against the central 80%-diameter safe circle. PNGs are opaque; App Store icon is 1024px. The iOS preparation script copies that same artwork into AppIcon. Versioned PWA icon URLs avoid the old horizontal-logo cache. Existing installed Android icons may update later or require reinstall after an approved deployment.
+Original `public/snow-viking-logo.png` is unchanged. The mascot crop is (100,155)-(558,505) in its original 2048x682 coordinates, with a stepped right boundary excluding the wordmark. No artwork is regenerated. Normal icons trim the exported mascot by (8,12)-(453,348) and retain only a small outer margin. Maskable placement uses the enclosing circle of the existing artwork to maximize its scale; visible pixels are checked against the central 80%-diameter safe circle. PNGs are opaque; App Store icon is 1024px. The iOS preparation script copies that same artwork into AppIcon. Versioned PWA icon URLs avoid the old horizontal-logo cache. Existing installed Android icons may update later or require reinstall after an approved deployment.
 
 ## App Store blockers / next implementation
 
