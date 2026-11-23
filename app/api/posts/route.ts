@@ -1,6 +1,6 @@
 import { serverSupabase } from "@/lib/supabase-server";
 import { canPost } from "@/lib/auth-policy";
-import { isAllowedPostOrigin } from "@/lib/site-origin";
+import { isAllowedApiOrigin, nativeApiOptions, withNativeCors } from "@/lib/native-api";
 import { postingStatus } from "@/lib/posting-limit";
 import { transitionalPost, validPost } from "@/lib/app-post-validation";
 import { findResort } from "@/lib/resort-master";
@@ -28,11 +28,11 @@ async function readPostBody(request: Request): Promise<string | null> {
   }
 }
 
-export async function POST(request: Request) {
+async function post(request: Request) {
   // Cookie-authenticated writes must originate from this site.
-  if (!isAllowedPostOrigin(request.url, request.headers.get("origin")))
+  if (!isAllowedApiOrigin(request))
     return Response.json({ error: "Forbidden" }, { status: 403 });
-  const client = await serverSupabase();
+  const client = await serverSupabase(request);
   if (!client)
     return Response.json(
       { error: "Authentication unavailable" },
@@ -83,8 +83,8 @@ export async function POST(request: Request) {
 }
 
 // Only the authenticated user's own posting window; never cache across users.
-export async function GET() {
-  const client = await serverSupabase();
+async function get(request: Request) {
+  const client = await serverSupabase(request);
   if (!client) return Response.json({ error: "Authentication unavailable" }, { status: 503 });
   const { data: auth, error } = await client.auth.getUser();
   if (error || !auth.user) return Response.json({ error: "Authentication required" }, { status: 401 });
@@ -94,3 +94,7 @@ export async function GET() {
   return status ? Response.json(status, { headers: { "Cache-Control": "no-store" } })
     : Response.json({ error: "Posting status unavailable" }, { status: 503 });
 }
+
+export const POST = (request: Request) => withNativeCors(request, post);
+export const GET = (request: Request) => withNativeCors(request, get);
+export const OPTIONS = nativeApiOptions;

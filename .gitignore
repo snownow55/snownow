@@ -44,3 +44,10 @@ next-env.d.ts
 /.next-e2e/
 /test-results/
 /playwright-report/
+
+# Local iOS client build outputs
+/mobile/node_modules/
+/mobile/dist/
+/mobile/ios/App/App/public/
+/mobile/ios/App/Pods/
+/mobile/ios/App/build/

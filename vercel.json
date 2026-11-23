@@ -2,7 +2,8 @@
   "git": {
     "deploymentEnabled": {
       "test/account-deletion": false,
-      "feat/pwa-install": false
+      "feat/pwa-install": false,
+      "feat/ios-native-icons": false
     }
   }
 }

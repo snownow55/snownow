@@ -1,0 +1,40 @@
+workflows:
+  ios-testflight:
+    name: SNOW VIKING iOS (manual only)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: SNOW_VIKING
+    environment:
+      groups:
+        - snowviking-ios
+      node: 22
+      xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: jp.snowviking.app
+    scripts:
+      - name: Check public production configuration
+        script: node mobile/scripts/check-release-env.mjs
+      - name: Install existing web and mobile dependencies
+        script: |
+          npm ci
+          npm ci --prefix mobile
+      - name: Build bundled client and prepare iOS project
+        script: cd mobile && npm run ios:prepare
+      - name: Set unique build number
+        script: |
+          cd "$CM_BUILD_DIR/mobile/ios/App"
+          agvtool new-version -all "$((BUILD_NUMBER + 1))"
+      - name: Apply signing profiles
+        script: xcode-project use-profiles
+      - name: Build signed IPA
+        script: xcode-project build-ipa --project "$CM_BUILD_DIR/mobile/ios/App/App.xcodeproj" --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false

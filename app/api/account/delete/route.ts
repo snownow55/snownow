@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { serverSupabase } from "@/lib/supabase-server";
-import { isAllowedPostOrigin } from "@/lib/site-origin";
+import { isAllowedApiOrigin, nativeApiOptions, withNativeCors } from "@/lib/native-api";
 import { deletionConfiguration, deleteOwnAccount, isAccountCookie } from "@/lib/account-deletion";
 import { accountDeletionClients } from "@/lib/account-deletion-server";
 
@@ -8,14 +8,14 @@ const reply = (body: object, status: number) => Response.json(body, {
   status, headers: { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" },
 });
 
-export async function POST(request: Request) {
-  if (!isAllowedPostOrigin(request.url, request.headers.get("origin"))) return reply({ error: "Forbidden" }, 403);
+async function post(request: Request) {
+  if (!isAllowedApiOrigin(request)) return reply({ error: "Forbidden" }, 403);
   const config = deletionConfiguration(process.env);
   if (!config) return reply({ error: "Account deletion is unavailable" }, 503);
   if (request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") {
     return reply({ error: "JSON required" }, 415);
   }
-  const client = await serverSupabase();
+  const client = await serverSupabase(request);
   const actor = client ? (await client.auth.getUser()).data.user : null;
   if (!actor || actor.is_anonymous) return reply({ error: "Authentication required" }, 401);
   let input: unknown;
@@ -56,3 +56,6 @@ export async function POST(request: Request) {
   }
   return reply({ ok: true }, 200);
 }
+
+export const POST = (request: Request) => withNativeCors(request, post);
+export const OPTIONS = nativeApiOptions;
