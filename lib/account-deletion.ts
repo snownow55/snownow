@@ -1,5 +1,5 @@
 export const DELETE_CONFIRMATION = "DELETE_MY_ACCOUNT";
-export const CONTACT_EMAIL = "nowviking.official@gmail.com";
+export const CONTACT_EMAIL = "snowviking.official@gmail.com";
 type Environment = Readonly<Record<string, string | undefined>>;
 export type DeletionActor = { id: string; email?: string; is_anonymous?: boolean };
 export type DeletionInput = { password: string; confirmation: typeof DELETE_CONFIRMATION };
