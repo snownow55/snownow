@@ -6,12 +6,14 @@ import { safeNext } from "../../lib/auth-policy";
 export const recoveryState = { allowed: false };
 export const callbackUrl = "jp.snowviking.app://auth/callback";
 export function NativeAuthForm({ mode }: { mode: "login" | "signup" | "forgot" | "reset" }) {
+  const [agreed,setAgreed]=useState(false);
   const [email, setEmail] = useState(""); const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState(""); const [busy, setBusy] = useState(false); const [message, setMessage] = useState("");
   const title = { login: "ログイン", signup: "新規登録", forgot: "パスワード再設定メール", reset: "新しいパスワード" }[mode];
   async function submit(event: FormEvent) {
     event.preventDefault(); if (!supabase || busy) return;
     if (["signup", "reset"].includes(mode) && (password.length < 8 || password !== confirmation)) { setMessage("8文字以上のパスワードと確認入力を一致させてください。"); return; }
+    if(mode==="signup"&&!agreed){setMessage("利用規約とプライバシーポリシーをご確認ください。");return;}
     setBusy(true); setMessage("");
     try {
       if (mode === "login") {
@@ -38,6 +40,7 @@ export function NativeAuthForm({ mode }: { mode: "login" | "signup" | "forgot" |
     {mode !== "reset" && <label className="block">メールアドレス<input className="ui-input" type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} /></label>}
     {mode !== "forgot" && <label className="block">パスワード<input className="ui-input" type="password" minLength={mode === "login" ? 1 : 8} maxLength={128} autoComplete={mode === "login" ? "current-password" : "new-password"} required value={password} onChange={e => setPassword(e.target.value)} /></label>}
     {["signup", "reset"].includes(mode) && <label className="block">パスワード確認<input className="ui-input" type="password" autoComplete="new-password" required value={confirmation} onChange={e => setConfirmation(e.target.value)} /></label>}
+    {mode==="signup"&&<label className="flex gap-2 text-sm"><input type="checkbox" required checked={agreed} onChange={e=>setAgreed(e.target.checked)}/><span>利用規約に同意し、プライバシーポリシーを確認しました。不適切な投稿・嫌がらせは禁止されています。</span></label>}
     <button className="ui-primary w-full" disabled={busy || !supabase}>{busy ? "処理中…" : title}</button>
     <p role="status">{message}</p>
     <Link className="block underline" href="/forgot-password">パスワードを忘れた場合</Link>

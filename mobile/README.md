@@ -63,3 +63,7 @@ The current app has contact/manual moderation text but no dedicated report/block
 - These require a separate reviewed DB migration and deletion/retention rules; none is included/applied here.
 
 Verify native signup/recovery, cold-start session/Keychain, login/logout, post/edit/delete, native account deletion, external links, safe-area/keyboard and return-from-background behavior on TestFlight. Prepare screenshots, age rating, App Privacy declarations (Supabase/Vercel/mail processing), support/privacy URLs and a review account. Reusing web screens alone does not guarantee compliance with minimum functionality (4.2); review the actual installed experience before submission. Email/password-only login does not itself add a social-login/Sign in with Apple requirement.
+
+## 2026-11-24 preparation update
+
+Apple enrollment/App Store app/Codemagic integration and the four public variables are reported complete by the operator. Remaining signing/API/Auth/UGC checks and the initial internal-TestFlight workflow are documented in [APP_STORE_PREPARATION.md](APP_STORE_PREPARATION.md). The server OPTIONS readiness check now stops an unready build before dependency installation. No production deployment, DB migration, signing/upload, or review submission was performed by this preparation.

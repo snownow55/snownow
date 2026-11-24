@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { serverSupabase } from "@/lib/supabase-server";
-import { isAllowedApiOrigin, nativeApiOptions, withNativeCors } from "@/lib/native-api";
+import { isAllowedApiOrigin, nativeApiOptions, withNativeCors, nativeBearer } from "@/lib/native-api";
 import { deletionConfiguration, deleteOwnAccount, isAccountCookie } from "@/lib/account-deletion";
 import { accountDeletionClients } from "@/lib/account-deletion-server";
 
@@ -50,9 +50,11 @@ async function post(request: Request) {
     console.error("ACCOUNT_DELETION_RESULT_UNCONFIRMED");
     return reply({ error: "Deletion result unconfirmed", code: "DELETION_UNCONFIRMED" }, 503);
   }
-  const store = await cookies();
-  for (const cookie of store.getAll()) {
-    if (isAccountCookie(cookie.name, config.cookieName)) store.delete(cookie.name);
+  if (!nativeBearer(request)) {
+    const store = await cookies();
+    for (const cookie of store.getAll()) {
+      if (isAccountCookie(cookie.name, config.cookieName)) store.delete(cookie.name);
+    }
   }
   return reply({ ok: true }, 200);
 }

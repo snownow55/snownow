@@ -27,6 +27,7 @@ export default function PrivacyPage() {
     <LegalSection title="4. Cookie等の利用">
       <p>ログイン状態の維持や認証処理のため、Cookieやブラウザーの保存領域を利用します。Cookie等を無効にすると認証などの機能を利用できない場合があります。利用状況の把握とサービス改善のため、Vercel Web Analyticsを利用します。解析用Cookieは使用しません。認証ユーザーID・メールアドレス・投稿本文を解析イベントに追加せず、閲覧URLからはクエリー文字列とハッシュを除外し、スキー場のURLは定型の区分へ置き換えます。解析データはVercelの保持方針に従い、通信基盤の運用・セキュリティログとは別に扱われます。広告配信は行っていません。</p>
     </LegalSection>
+    <LegalSection title="通報・ブロックと安全管理"><p>通報した利用者・対象投稿・理由・対応状態、ブロックする利用者同士の対応関係を安全管理と表示制御のため保存します。通報一覧や相手のアカウントIDは一般利用者に公開しません。通報は対象投稿または通報者のアカウント削除時に削除し、ブロック情報は解除または関連アカウントの削除時に削除します。iOSアプリの認証セッションは端末のKeychainを利用して保持します。</p></LegalSection>
     <LegalSection title="5. 外部サービスへの委託">
       <p>Supabase（認証・DB）、Vercel（アプリの配信・実行・アクセス解析）、認証メールの配送に設定されたサービス（Resend等）を利用します。機能の提供に必要な情報を各事業者で処理します。お問い合わせメールはGmailで受信・管理します。委託先の設備等により、日本国外で処理・保存される場合があります。</p>
       <p className="mt-3">各事業者の取扱いは、<a href="https://supabase.com/privacy" className="underline text-brand">Supabase</a>、<a href="https://vercel.com/legal/privacy-policy" className="underline text-brand">Vercel</a>、<a href="https://resend.com/legal/privacy-policy" className="underline text-brand">Resend</a>、<a href="https://policies.google.com/privacy?hl=ja" className="underline text-brand">Google</a>のポリシーもご確認ください。</p>

@@ -6,8 +6,9 @@ import { CONTACT_EMAIL } from "@/lib/account-deletion";
 export const metadata: Metadata = { title: "利用規約 | SNOW VIKING" };
 
 export default function TermsPage() {
-  return <LegalPage title="利用規約">
+  return <LegalPage title="利用規約" updatedAt="2026年11月24日">
     <p>この利用規約は、個人運営のサービス「SNOW VIKING」（以下「本サービス」）の利用条件を定めます。本サービスを利用する際は、本規約をご確認ください。</p>
+    <LegalSection title="投稿の安全性と運営対応"><p>暴言、嫌がらせ、違法・危険な内容、他人の個人情報、迷惑広告の投稿は禁止します。投稿詳細から通報・投稿者のブロックができ、設定画面でブロックを解除できます。運営は通報を確認し、必要に応じて投稿の非表示・投稿停止を行います。自動フィルターはすべての不適切な内容を検知するものではありません。緊急の場合はお問い合わせ窓口へご連絡ください。</p></LegalSection>
     <LegalSection title="1. サービスの内容と利用料金">
       <p>本サービスは、スキー場の現地コンディションを利用者同士で共有し、取得できた公式情報を出典とともに案内するアプリです。現在は先行無料公開中で、閲覧・投稿・登録エリア設定を無料で利用できます。月額課金や投稿報酬チケットは提供していません。有料機能を導入する場合は、条件と料金を事前に案内し、利用者の同意なく課金しません。</p>
     </LegalSection>

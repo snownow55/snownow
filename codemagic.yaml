@@ -1,6 +1,6 @@
 workflows:
   ios-testflight:
-    name: SNOW VIKING iOS (manual only)
+    name: SNOW VIKING iOS (internal TestFlight, manual only)
     instance_type: mac_mini_m2
     max_build_duration: 60
     integrations:
@@ -16,6 +16,8 @@ workflows:
     scripts:
       - name: Check public production configuration
         script: node mobile/scripts/check-release-env.mjs
+      - name: Check deployed native API before using build minutes
+        script: node mobile/scripts/check-native-api.mjs
       - name: Install existing web and mobile dependencies
         script: |
           npm ci
@@ -27,7 +29,8 @@ workflows:
           cd "$CM_BUILD_DIR/mobile/ios/App"
           agvtool new-version -all "$((BUILD_NUMBER + 1))"
       - name: Apply signing profiles
-        script: xcode-project use-profiles
+        script: |
+          xcode-project use-profiles --custom-export-options='{"testFlightInternalTestingOnly": true}'
       - name: Build signed IPA
         script: xcode-project build-ipa --project "$CM_BUILD_DIR/mobile/ios/App/App.xcodeproj" --scheme App
     artifacts:

@@ -1,5 +1,6 @@
 "use client";
 
+import { BlockedAuthors } from "@/components/content-safety";
 import Link from "next/link";
 import { useState } from "react";
 import { PageShell } from "@/components/ui";
@@ -54,6 +55,7 @@ export default function SettingsPage() {
       : master.error ? <div role="alert"><p>{master.error}</p><button className="ui-secondary" onClick={master.retry}>再読み込み</button></div>
       : !master.data ? <p role="status">エリアを読み込んでいます…</p>
       : <RegionEditor key={preferences.user.id} userId={preferences.user.id} regions={master.data.regions} codes={preferences.codes} />}
+    <BlockedAuthors />
     <Link href="/" className="mt-4 inline-flex min-h-11 items-center text-brand underline">一覧に戻る</Link>
   </div></PageShell>;
 }

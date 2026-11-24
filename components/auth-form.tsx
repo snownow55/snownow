@@ -18,6 +18,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const params = useSearchParams();
   const router = useRouter();
   const { user, loading } = useAuth();
+  const [agreed,setAgreed]=useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -28,6 +29,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase || busy) return;
+    if(mode==="signup"&&!agreed){setError("利用規約とプライバシーポリシーをご確認ください。");return;}
     setError("");
     setMessage("");
     if (
@@ -227,6 +229,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
               {message}
             </p>
           )}
+          {mode==="signup"&&<label className="flex gap-2 text-sm"><input type="checkbox" required checked={agreed} onChange={e=>setAgreed(e.target.checked)}/><span><Link href="/terms" className="underline">利用規約</Link>に同意し、<Link href="/privacy" className="underline">プライバシーポリシー</Link>を確認しました。不適切な投稿・嫌がらせは禁止されています。</span></label>}
           <button
             disabled={!supabase || busy || resetUnavailable}
             className="ui-primary min-h-12 w-full"
