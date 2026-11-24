@@ -25,11 +25,11 @@ export default function PrivacyPage() {
       <p>投稿先、コンディション、コメント、投稿日時・編集済み表示などは、ログインしていない人を含む他の利用者が閲覧できます。投稿本文にメールアドレス、氏名、連絡先などの個人情報を記載しないでください。アカウントのメールアドレスを投稿表示に使用することはありません。公開された情報は、第三者に保存・転載される可能性があります。</p>
     </LegalSection>
     <LegalSection title="4. Cookie等の利用">
-      <p>ログイン状態の維持や認証処理のため、Cookieやブラウザーの保存領域を利用します。Cookie等を無効にすると認証などの機能を利用できない場合があります。利用状況の把握とサービス改善のため、Vercel Web Analyticsを利用します。解析用Cookieは使用しません。認証ユーザーID・メールアドレス・投稿本文を解析イベントに追加せず、閲覧URLからはクエリー文字列とハッシュを除外し、スキー場のURLは定型の区分へ置き換えます。解析データはVercelの保持方針に従い、通信基盤の運用・セキュリティログとは別に扱われます。広告配信は行っていません。</p>
+      <p>ログイン状態の維持や認証処理のため、Cookieやブラウザーの保存領域を利用します。Cookie等を無効にすると認証などの機能を利用できない場合があります。利用状況の把握とサービス改善のため、設定された検証環境ではCloudflare Web Analyticsを利用します。解析用Cookieは使用しません。認証ユーザーID・メールアドレス・投稿本文を解析イベントに追加せず、解析サービスの仕様に従い、ページ閲覧・流入元・端末区分等を計測します。解析データはCloudflareの保持方針に従い、通信基盤の運用・セキュリティログとは別に扱われます。広告配信は行っていません。</p>
     </LegalSection>
     <LegalSection title="5. 外部サービスへの委託">
-      <p>Supabase（認証・DB）、Vercel（アプリの配信・実行・アクセス解析）、認証メールの配送に設定されたサービス（Resend等）を利用します。機能の提供に必要な情報を各事業者で処理します。お問い合わせメールはGmailで受信・管理します。委託先の設備等により、日本国外で処理・保存される場合があります。</p>
-      <p className="mt-3">各事業者の取扱いは、<a href="https://supabase.com/privacy" className="underline text-brand">Supabase</a>、<a href="https://vercel.com/legal/privacy-policy" className="underline text-brand">Vercel</a>、<a href="https://resend.com/legal/privacy-policy" className="underline text-brand">Resend</a>、<a href="https://policies.google.com/privacy?hl=ja" className="underline text-brand">Google</a>のポリシーもご確認ください。</p>
+      <p>Supabase（認証・DB）、Cloudflare（検証アプリの配信・実行・アクセス解析）、認証メールの配送に設定されたサービス（Resend等）を利用します。機能の提供に必要な情報を各事業者で処理します。お問い合わせメールはGmailで受信・管理します。委託先の設備等により、日本国外で処理・保存される場合があります。</p>
+      <p className="mt-3">各事業者の取扱いは、<a href="https://supabase.com/privacy" className="underline text-brand">Supabase</a>、<a href="https://www.cloudflare.com/privacypolicy/" className="underline text-brand">Cloudflare</a>、<a href="https://resend.com/legal/privacy-policy" className="underline text-brand">Resend</a>、<a href="https://policies.google.com/privacy?hl=ja" className="underline text-brand">Google</a>のポリシーもご確認ください。</p>
     </LegalSection>
     <LegalSection title="6. 第三者提供と安全管理">
       <p>公開投稿、サービス提供に必要な委託、本人の同意がある場合、法令に基づく場合等を除き、個人情報を第三者へ提供しません。情報へのアクセス制御や認証・通信の保護により、不正アクセスや漏えいの防止に努めます。</p>

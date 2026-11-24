@@ -1,3 +1,4 @@
+import { deploymentEnvironment } from "./deployment-environment.ts";
 export const DELETE_CONFIRMATION = "DELETE_MY_ACCOUNT";
 export const CONTACT_EMAIL = "snowviking.official@gmail.com";
 type Environment = Readonly<Record<string, string | undefined>>;
@@ -13,7 +14,9 @@ export function deletionConfiguration(env: Environment) {
   try {
     const origin = new URL(url);
     if (origin.username || origin.password || origin.search || origin.hash || origin.pathname !== "/") return null;
-    const expected = env.VERCEL_ENV === "production"
+    const deployment = deploymentEnvironment(env);
+    if (!deployment) return null;
+    const expected = deployment === "production"
       ? "https://rtgqyctqjfoercdymssd.supabase.co"
       : "https://viidjrhaoxcvunbfdbni.supabase.co";
     const local = env.NODE_ENV !== "production" && env.VERCEL !== "1"

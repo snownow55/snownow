@@ -44,3 +44,10 @@ next-env.d.ts
 /.next-e2e/
 /test-results/
 /playwright-report/
+/dist/
+.vinext/
+.wrangler/
+
+# Cloudflare local secrets
+.dev.vars
+.dev.vars.*

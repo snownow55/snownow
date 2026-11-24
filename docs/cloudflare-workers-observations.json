@@ -1,0 +1,303 @@
+{
+  "environment": "Cloudflare temporary preview; user Free account plan not verified",
+  "database": "No Supabase keys configured; no real authentication or DB actions",
+  "cpu_is_actual_cloudflare_tail": true,
+  "samples": [
+    {
+      "path": "/",
+      "method": "GET",
+      "cpu_ms": 82,
+      "wall_ms": 84,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/icons/snow-viking-192-v2.png",
+      "method": "GET",
+      "cpu_ms": 3,
+      "wall_ms": 17,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/account/delete",
+      "method": "GET",
+      "cpu_ms": 7,
+      "wall_ms": 8,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/signup",
+      "method": "GET",
+      "cpu_ms": 18,
+      "wall_ms": 22,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/login",
+      "method": "GET",
+      "cpu_ms": 14,
+      "wall_ms": 15,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/contact",
+      "method": "GET",
+      "cpu_ms": 97,
+      "wall_ms": 175,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/settings",
+      "method": "GET",
+      "cpu_ms": 25,
+      "wall_ms": 95,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/terms",
+      "method": "GET",
+      "cpu_ms": 21,
+      "wall_ms": 190,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/privacy",
+      "method": "GET",
+      "cpu_ms": 25,
+      "wall_ms": 190,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/login",
+      "method": "GET",
+      "cpu_ms": 4,
+      "wall_ms": 4,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/icons/snow-viking-192-v2.png",
+      "method": "GET",
+      "cpu_ms": 4,
+      "wall_ms": 22,
+      "outcome": "ok",
+      "status": 304
+    },
+    {
+      "path": "/account/delete",
+      "method": "GET",
+      "cpu_ms": 4,
+      "wall_ms": 5,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/contact",
+      "method": "GET",
+      "cpu_ms": 4,
+      "wall_ms": 14,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/privacy",
+      "method": "GET",
+      "cpu_ms": 3,
+      "wall_ms": 5,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/terms",
+      "method": "GET",
+      "cpu_ms": 4,
+      "wall_ms": 4,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/signup",
+      "method": "GET",
+      "cpu_ms": 6,
+      "wall_ms": 7,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/",
+      "method": "GET",
+      "cpu_ms": 4,
+      "wall_ms": 23,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/forgot-password",
+      "method": "GET",
+      "cpu_ms": 17,
+      "wall_ms": 19,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/signup",
+      "method": "GET",
+      "cpu_ms": 3,
+      "wall_ms": 3,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/login",
+      "method": "GET",
+      "cpu_ms": 7,
+      "wall_ms": 9,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/login",
+      "method": "GET",
+      "cpu_ms": 5,
+      "wall_ms": 7,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/forgot-password",
+      "method": "GET",
+      "cpu_ms": 4,
+      "wall_ms": 10,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/manifest.webmanifest",
+      "method": "GET",
+      "cpu_ms": 4,
+      "wall_ms": 4,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/icons/snow-viking-192-v2.png",
+      "method": "GET",
+      "cpu_ms": 2,
+      "wall_ms": 9,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/favicon.ico",
+      "method": "GET",
+      "cpu_ms": 12,
+      "wall_ms": 25,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/icons/snow-viking-512-v2.png",
+      "method": "GET",
+      "cpu_ms": 15,
+      "wall_ms": 216,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/favicon.ico",
+      "method": "GET",
+      "cpu_ms": 3,
+      "wall_ms": 3,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/icons/snow-viking-maskable-512-v2.png",
+      "method": "GET",
+      "cpu_ms": 3,
+      "wall_ms": 132,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/favicon.ico",
+      "method": "GET",
+      "cpu_ms": 3,
+      "wall_ms": 3,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/icons/snow-viking-180-v2.png",
+      "method": "GET",
+      "cpu_ms": 2,
+      "wall_ms": 116,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/pwa-icon/192",
+      "method": "GET",
+      "cpu_ms": 24,
+      "wall_ms": 26,
+      "outcome": "ok",
+      "status": 307
+    },
+    {
+      "path": "/favicon.ico",
+      "method": "GET",
+      "cpu_ms": 3,
+      "wall_ms": 3,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/icons/snow-viking-192-v2.png",
+      "method": "GET",
+      "cpu_ms": 3,
+      "wall_ms": 11,
+      "outcome": "ok",
+      "status": 304
+    },
+    {
+      "path": "/api/posts",
+      "method": "GET",
+      "cpu_ms": 6,
+      "wall_ms": 9,
+      "outcome": "ok",
+      "status": 503
+    },
+    {
+      "path": "/favicon.ico",
+      "method": "GET",
+      "cpu_ms": 3,
+      "wall_ms": 7,
+      "outcome": "ok",
+      "status": 200
+    },
+    {
+      "path": "/api/posts/manage",
+      "method": "GET",
+      "cpu_ms": 6,
+      "wall_ms": 7,
+      "outcome": "ok",
+      "status": 401
+    },
+    {
+      "path": "/favicon.ico",
+      "method": "GET",
+      "cpu_ms": 1,
+      "wall_ms": 2,
+      "outcome": "ok",
+      "status": 200
+    }
+  ]
+}

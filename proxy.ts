@@ -4,7 +4,7 @@ export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   let response = NextResponse.next({ request });
-  if (!url || !key) return response;
+  if (url !== "https://viidjrhaoxcvunbfdbni.supabase.co" || !key) return response;
   const client = createServerClient(url, key, {
     cookieOptions: {
       sameSite: 'lax',

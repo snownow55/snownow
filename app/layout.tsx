@@ -1,4 +1,4 @@
-import { WebAnalytics } from "@/components/web-analytics";
+import { CloudflareAnalytics } from "@/components/cloudflare-analytics";
 import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
@@ -26,7 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         {children}
-        <WebAnalytics />
+        <CloudflareAnalytics />
       </body>
     </html>
   );
