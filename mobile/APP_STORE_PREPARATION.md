@@ -6,9 +6,11 @@
 
 ユーザー申告で完了: Apple Developer登録、Bundle ID `jp.snowviking.app`、App Store Connectアプリ、APIキー、Codemagic/GitHub連携、統合名 `SNOW_VIKING`、グループ `snowviking-ios` の公開設定4変数。値は取得/表示していない。
 
+関連自動テスト36件（回帰31件＋native/通報/隔離DB5件）、Web/モバイルビルド、型チェック、lint、署名前SPM同期が成功。390pxブラウザー表示で登録同意・設定・退会画面を確認しJS例外なし。Keychain/Xcode実機の検証ではない。
+
 ローカルで実施: mainのVercel Analytics等の既存更新をiOS作業コピーに競合なく取り込み。Web/モバイルのビルド、署名前のCapacitor SPM同期。新しい報告/ブロック/RLSを人工データのみのPostgreSQL17で検証。実iPhone、Xcodeコンパイル、署名、IPA、Keychain/メール認証、App Storeの申告・送信は未実施。
 
-本番の読み取りOPTIONSは `/api/posts` でHTTP204だがnative向けCORSなし。これをネイティブ対応成功とは判定していない。新しいCodemagic preflightはこの状態で依存インストール前に停止し、未対応APIのままビルド分数を使わない。
+本番の読み取りOPTIONSは `/api/posts` でHTTP204だがnative向けCORSなし。これをネイティブ対応成功とは判定していない。新しいCodemagic preflightはこの状態で依存インストール前に停止する。Macインスタンス自体の起動分数は消費し得るため、未対応のままビルドを開始しない。このチェックはCORSの到達性だけであり、実認証・UGC DB適用・実機の合格を意味しない。
 
 ## 承認が必要な本番差分
 

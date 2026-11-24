@@ -55,12 +55,7 @@ Original `public/snow-viking-logo.png` is unchanged. The mascot crop is (100,155
 
 ## App Store blockers / next implementation
 
-The current app has contact/manual moderation text but no dedicated report/block controls. Before submission implement the minimum UGC controls (Guideline 1.2):
-
-- Report a post with a reason through an authenticated RPC; reviewer access server-side only, no public report list.
-- Block an author by post ID via server RPC, without exposing author UUIDs. Apply the block filter to authenticated feed reads on the server; unblocking belongs in a minimal settings list.
-- Server validation/filtering of prohibited content and an operator process for timely review and user restriction. A filter alone is not sufficient.
-- These require a separate reviewed DB migration and deletion/retention rules; none is included/applied here.
+Report/block controls, unblock settings, configurable content rejection and operator hide/suspend actions are implemented in this branch. The new `20261124000200_user_content_safety.sql` is tested on isolated PostgreSQL 17 but is **not applied to hosted Supabase**. Real authentication tests and an operator moderation process are still required before release. See APP_STORE_PREPARATION.md for the exact development apply package, operator query, privacy draft and approval gates.
 
 Verify native signup/recovery, cold-start session/Keychain, login/logout, post/edit/delete, native account deletion, external links, safe-area/keyboard and return-from-background behavior on TestFlight. Prepare screenshots, age rating, App Privacy declarations (Supabase/Vercel/mail processing), support/privacy URLs and a review account. Reusing web screens alone does not guarantee compliance with minimum functionality (4.2); review the actual installed experience before submission. Email/password-only login does not itself add a social-login/Sign in with Apple requirement.
 
