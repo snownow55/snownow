@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "./globals.css";
+import { UsageAnalytics } from "@/components/usage-analytics";
 
 export const metadata: Metadata = {
   title: "SNOW VIKING",
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         {children}
+        <UsageAnalytics />
       </body>
     </html>
   );
