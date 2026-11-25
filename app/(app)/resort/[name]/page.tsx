@@ -1,5 +1,7 @@
 "use client";
 import { useAuth } from "@/components/auth-provider";
+import { PostSafetyActions } from "@/components/content-safety";
+import { useContentSafetyRevision } from "@/lib/use-content-safety";
 import { OwnerPostActions } from "@/components/owner-post-actions";
 import { safeHomeReturn } from "@/lib/home-return";
 import { PrototypeNotice } from "@/components/prototype-notice";
@@ -48,7 +50,9 @@ type SnowPost = {
 function ResortPageContent() {
   const searchParams = useSearchParams();
   const postDay = usePostDay();
+  const safetyRevision=useContentSafetyRevision();
   const { user } = useAuth();
+  const scope=`${user?.id??"anonymous"}:${safetyRevision}`;
   const [revision,setRevision]=useState(0);
   const [ownership,setOwnership]=useState<{userId:string;ids:number[]}|null>(null);
   useEffect(()=>{
@@ -67,10 +71,10 @@ function ResortPageContent() {
   const official = useOfficialConditions(!!resort?.is_active);
   const returnTo = safeHomeReturn(searchParams.get("returnTo")) ?? (resort ? regionUrl(resort.region_code) : "/");
 
-  const [postState, setPostState] = useState<{ name: string; day: number; posts: SnowPost[]; error: string }>({ name: "", day: 0, posts: [], error: "" });
-  const posts = postState.name === canonicalName && postState.day === postDay ? postState.posts : [];
-  const postsLoading = postState.name !== canonicalName || postState.day !== postDay;
-  const postsError = postState.name === canonicalName && postState.day === postDay ? postState.error : "";
+  const [postState, setPostState] = useState<{ scope: string; name: string; day: number; posts: SnowPost[]; error: string }>({ scope: "", name: "", day: 0, posts: [], error: "" });
+  const posts = postState.scope === scope && postState.name === canonicalName && postState.day === postDay ? postState.posts : [];
+  const postsLoading = postState.scope !== scope || postState.name !== canonicalName || postState.day !== postDay;
+  const postsError = postState.scope === scope && postState.name === canonicalName && postState.day === postDay ? postState.error : "";
 
  useEffect(() => {
   if (!canonicalName || !postDay) return;
@@ -101,14 +105,14 @@ function ResortPageContent() {
       updatedAt: post.updated_at ?? null,
     }));
 
-    if (active) setPostState({ name: canonicalName!, day: postDay, posts: formattedPosts, error: "" });
+    if (active) setPostState({ scope, name: canonicalName!, day: postDay, posts: formattedPosts, error: "" });
   }
 
   loadPosts().catch(() => {
-    if (active) setPostState({ name: canonicalName, day: postDay, posts: [], error: "投稿情報を取得できませんでした。" });
+    if (active) setPostState({ scope, name: canonicalName, day: postDay, posts: [], error: "投稿情報を取得できませんでした。" });
   });
   return () => { active = false; };
-}, [canonicalName, revision, postDay]);
+}, [canonicalName, revision, postDay, scope]);
 
   if (master.loading) return <p role="status" className="p-6">スキー場を読み込んでいます…</p>;
   if (master.error) return <PageShell className="p-6">
@@ -225,6 +229,7 @@ function ResortPageContent() {
                     </p>
                   </div>
                 )}
+                <PostSafetyActions postId={post.id} isOwn={!!user && ownership?.userId===user.id && ownership.ids.includes(post.id)} />
                 {user && ownership?.userId===user.id && ownership.ids.includes(post.id) && <OwnerPostActions key={`${user.id}:${post.id}:${post.updatedAt}`} id={post.id} initial={{area:post.area,snow_type:post.snowType,snowfall:post.snowfall,roughness:post.roughness,crowd:post.crowd,comment:post.comment}} onChanged={()=>setRevision(v=>v+1)}/>}
               </article>
             ))}

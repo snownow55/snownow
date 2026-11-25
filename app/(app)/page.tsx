@@ -6,6 +6,7 @@ import { PageShell } from "@/components/ui";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useContentSafetyRevision } from "@/lib/use-content-safety";
 import { usePostDay } from "@/lib/use-post-day";
 import { useResortMaster } from "@/lib/use-resort-master";
 import { useOfficialConditions } from "@/lib/use-official-conditions";
@@ -23,6 +24,7 @@ function searchText(value: string) {
 function Home() {
   const searchParams = useSearchParams();
   const postDay = usePostDay();
+  const safetyRevision=useContentSafetyRevision();
   const master = useResortMaster();
   const preferences = useRegionPreferences();
   const orderedRegions = prioritizeRegions(master.data?.regions ?? [], preferences.codes);
@@ -50,7 +52,7 @@ function Home() {
     sort: sortOrder,
     ...(search ? { search } : {}),
   }).toString()}`;
-  const postKey = JSON.stringify([postDay, resortsInRegion.map((resort) => resort.name)]);
+  const postKey = JSON.stringify([postDay, preferences.user?.id??"anonymous", safetyRevision, resortsInRegion.map((resort) => resort.name)]);
   const [postState, setPostState] = useState<{
     key: string;
     summaries: Map<string, ResortPostSummary>;
