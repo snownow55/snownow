@@ -61,3 +61,20 @@ async function post(request: Request) {
 
 export const POST = (request: Request) => withNativeCors(request, post);
 export const OPTIONS = nativeApiOptions;
+
+// Authenticated self-only diagnostic. No reauthentication, deletion, or data writes.
+async function get(request: Request) {
+  const config = deletionConfiguration(process.env);
+  if (!config) return reply({ code: "DELETION_CONFIGURATION_UNAVAILABLE" }, 503);
+  const client = await serverSupabase(request);
+  const actor = client ? (await client.auth.getUser()).data.user : null;
+  if (!actor || actor.is_anonymous) return reply({ code: "AUTHENTICATION_REQUIRED" }, 401);
+  const clients = accountDeletionClients(config);
+  try {
+    const status = await clients.dependencies.deletionStatus(actor.id);
+    return reply({ ok: status === "present", code: status === "present" ? "ADMIN_READ_OK" : "ADMIN_READ_UNCONFIRMED", diagnostic_id: clients.diagnosticId }, status === "present" ? 200 : 503);
+  } catch {
+    return reply({ ok: false, code: "ADMIN_READ_UNCONFIRMED", diagnostic_id: clients.diagnosticId }, 503);
+  }
+}
+export const GET = (request: Request) => withNativeCors(request, get);
